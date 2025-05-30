@@ -1,0 +1,6 @@
+sbibm
+torch
+juliacall
+diffeqtorch
+future
+altair<5
