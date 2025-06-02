@@ -47,20 +47,20 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
     ### algorithms
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
-        multistart = 200,
+        multistart = 24,
         parallel = true,
         static_schedule = true, # issues with PRIMA.jl
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
-        multistart = 18,
+        multistart = 24,
         parallel = true,
         static_schedule = true, # issues with PRIMA.jl
         rhoend = 1e-4,
     )
 
     ### termination condition
-    term_cond = IterLimit(10)
+    term_cond = IterLimit(80)
 
     ### the metric
     metric_cb = MetricCallback(;
@@ -69,7 +69,7 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
         # sampler = RejectionSampler(;
         #     likelihood_maximizer = LikelihoodMaximizer(;
         #         algorithm = BOBYQA(),
-        #         multistart = 200,
+        #         multistart = 24,
         #         parallel = true,
         #         static_schedule = true, # issues with PRIMA.jl
         #         rhoend = 1e-4,
@@ -88,7 +88,7 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
             # gauss_mix_options = nothing,                # use Laplace approximation for the 0th iteration
             gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
                 algorithm = BOBYQA(),
-                multistart = 200,
+                multistart = 24,
                 parallel = true,
                 static_schedule = true, # issues with PRIMA.jl
                 cluster_ϵs = nothing,
@@ -97,7 +97,7 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
             ),
         ),
         
-        sample_count = 1200,
+        sample_count = 1000,
         metric = MMDMetric(;
             kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         ),
@@ -112,18 +112,21 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
 
     ### save results
     dir = data_dir(def_problem)
-    file = data_file(def_problem, run_name, run_idx)
+    filename = data_filename(def_problem, run_name, run_idx)
     
     mkpath(dir)
-    save(file, Dict(
+    save(filename * "_extras.jld2", Dict(
         "run_idx" => run_idx,
         "problem" => problem,
-        "data" => (problem.problem.data.X, problem.problem.data.Y),
         "model_fitter" => model_fitter,
         "acq_maximizer" => acq_maximizer,
         "term_cond" => term_cond,
         "options" => options,
         "metric" => metric_cb,
+    ))
+    save(filename * ".jld2", Dict(
+        "run_idx" => run_idx,
+        "data" => (problem.problem.data.X, problem.problem.data.Y),
         "score" => metric_cb.score_history,
     ))
 
