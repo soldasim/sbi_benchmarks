@@ -1,6 +1,6 @@
 
 @kwdef mutable struct MetricCallback <: BolfiCallback
-    reference::Union{Function, Matrix{Float64}} # true likelihood or reference samples
+    reference::Any #::Union{Function, Matrix{Float64}} true likelihood or reference samples
     metric::DistributionMetric
     sampler::DistributionSampler
     sample_count::Int
