@@ -5,17 +5,27 @@ This repo contains implementation of a wrapper of BOLFI.jl for the `sbibm` bench
 
 The installation and the startup are quite complex due to using PyCall.jl and PythonCall.jl simultaneously. PythonCall/JuliaCall are neede for some SBIBM tasks. PyCall.jl is much nicer to use for me.
 
+PC:
 - `pyenv install 3.10.16`
 - `pyenv local 3.10.16`
+
+Cluster:
+- `ml Python/3.10`
+
+Then:
 - `python -m venv venv`
 - `. venv/bin/activate`
+- `pip install --upgrade pip`
 - `pip install -r requirements.txt`
 - manually edit `/venv/lib/python3.10/site-packages/diffeqtorch/diffeqtorch.py` - see the TODOs
 - python: `import juliacall` -> creates `/venv/julia_env` used by PythonCall/JuliaCall
 - (use the created `/venv/julia_env` environment as the main Julia environment for the project)
 - `julia`
 - `] activate venv/julia_env`
-- `] add PyCall, PythonCall, DifferentialEquations`
+- `ENV["PYTHON"] = Sys.which("python")` # make sure PyCall.jl uses the correct python to during build
+- `] add PyCall, PythonCall`
+- `] build`
+- `] add ...`
 
 # Startup (on every run)
 

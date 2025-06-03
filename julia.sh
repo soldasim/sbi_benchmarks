@@ -2,6 +2,7 @@
 export PYTHON_JULIACALL_HANDLE_SIGNALS=yes
 
 # activate python env
+ml Python/3.10
 . venv/bin/activate
 
 # start julia

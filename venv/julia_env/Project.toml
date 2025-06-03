@@ -17,4 +17,3 @@ PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 
 [compat]
 OpenSSL_jll = "3.0.0 - 3.4"
-PythonCall = "=0.9.25"
