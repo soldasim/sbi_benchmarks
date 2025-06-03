@@ -14,7 +14,7 @@ include("data_paths.jl")
 include("generate_starts.jl")
 include("plots.jl")
 
-function main(; run_name="_test", data=nothing, run_idx=nothing)
+function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
     ### problem
     def_problem = ABProblem()
     # def_problem = SIRProblem()
@@ -103,8 +103,16 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
         ),
     )
 
+    # plot
+    plot_cb = PlotModule.PlotCB(;
+        plot_each = 10,
+    )
+
     options = BolfiOptions(;
-        callback = metric_cb,
+        callback = CombinedCallback(
+            metric_cb,
+            # plot_cb, # TODO
+        ),
     )
 
     ### RUN
@@ -114,34 +122,38 @@ function main(; run_name="_test", data=nothing, run_idx=nothing)
     dir = data_dir(def_problem)
     filename = data_filename(def_problem, run_name, run_idx)
     
-    mkpath(dir)
-    save(filename * "_extras.jld2", Dict(
-        "run_idx" => run_idx,
-        "problem" => problem,
-        "model_fitter" => model_fitter,
-        "acq_maximizer" => acq_maximizer,
-        "term_cond" => term_cond,
-        "options" => options,
-        "metric" => metric_cb,
-    ))
-    save(filename * ".jld2", Dict(
-        "run_idx" => run_idx,
-        "data" => (problem.problem.data.X, problem.problem.data.Y),
-        "score" => metric_cb.score_history,
-    ))
+    if save_data
+        mkpath(dir)
+        save(filename * "_extras.jld2", Dict(
+            "run_idx" => run_idx,
+            "problem" => problem,
+            "model_fitter" => model_fitter,
+            "acq_maximizer" => acq_maximizer,
+            "term_cond" => term_cond,
+            "options" => options,
+            "metric" => metric_cb,
+        ))
+        save(filename * ".jld2", Dict(
+            "run_idx" => run_idx,
+            "data" => (problem.problem.data.X, problem.problem.data.Y),
+            "score" => metric_cb.score_history,
+        ))
+    end
 
     return problem
 end
 
 function run(problem::AbstractProblem)
-    run_name = "_test" # the name used for storing data from this run
+    run_name = "ig" # the name used for storing data from this run
 
-    start_files = sort(Glob.glob(data_dir(problem) * "/start_*.jld2"))
+    start_files = Glob.glob(data_dir(problem) * "/start_*.jld2")
     @info "Running $(length(start_files)) runs of the $(typeof(problem)) ..."
     
-    for (run_idx, start_file) in enumerate(start_files)
+    for start_file in start_files
+        m = match(r"start_(\d+)\.jld2$", start_file)
+        run_idx = parse(Int, m.captures[1])
         data = load(start_file, "data")
-        main(; run_name, data, run_idx)
+        main(; run_name, save_data=true, data, run_idx)
     end
 
     nothing

@@ -2068,9 +2068,9 @@ version = "0.4.4"
 
 [[deps.PRIMA]]
 deps = ["LinearAlgebra", "PRIMA_jll", "Requires", "TypeUtils"]
-git-tree-sha1 = "4d8c795abdf082de67cfdcfe256cf3daab86b161"
+git-tree-sha1 = "f7a581bfcf7602808fac9222c50460ef080b0c28"
 repo-rev = "main"
-repo-url = "https://github.com/soldasim/PRIMA.jl"
+repo-url = "https://github.com/libprima/PRIMA.jl"
 uuid = "0a7d04aa-8ac2-47b3-b7a7-9dbd6ad661ed"
 version = "0.2.2"
 

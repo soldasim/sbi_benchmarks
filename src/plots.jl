@@ -20,7 +20,12 @@ function plot_results(problem::AbstractProblem)
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group")
 
+    colors = Makie.wong_colors()  # or use any preferred color palette
+    group_names = collect(keys(scores_by_group))
+    color_map = Dict(group => colors[mod1(i, length(colors))] for (i, group) in enumerate(group_names))
+
     for (group, scores) in scores_by_group
+        color = color_map[group]
         # scores is a Vector of score histories (each is a Vector)
         # Pad with NaN to equal length if needed
         maxlen = maximum(length.(scores))
@@ -31,9 +36,14 @@ function plot_results(problem::AbstractProblem)
         q25 = mapslices(x -> quantile(skipmissing(x), 0.25), arr; dims=2)[:]
         q75 = mapslices(x -> quantile(skipmissing(x), 0.75), arr; dims=2)[:]
         # Plot median line
-        lines!(ax, 1:maxlen, median_scores, label=group)
-        # Plot quantile band
-        band!(ax, 1:maxlen, q25, q75)
+        lines!(ax, 1:maxlen, median_scores, label=group, color=color)
+        # Plot quantile band with alpha
+        band!(ax, 1:maxlen, q25, q75; color=color, alpha=0.6)
+
+        q10 = mapslices(x -> quantile(skipmissing(x), 0.1), arr; dims=2)[:]
+        q90 = mapslices(x -> quantile(skipmissing(x), 0.9), arr; dims=2)[:]
+        lines!(ax, 1:maxlen, q10; color=color, linestyle=:dot, linewidth=1)
+        lines!(ax, 1:maxlen, q90; color=color, linestyle=:dot, linewidth=1)
     end
 
     axislegend(ax)
