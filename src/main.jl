@@ -36,10 +36,17 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     ### utils
     bounds = domain(def_problem).bounds
 
+    ### init data
+    data = isnothing(data) ? get_init_data(def_problem, init_data_count) : data
+    @info "Initial data:"
+    for x in eachcol(data.X)
+        println("  $x")
+    end
+
     ### bolfi problem
     problem = construct_bolfi_problem(;
         problem = def_problem,
-        data = isnothing(data) ? get_init_data(def_problem, init_data_count) : data,
+        data,
         acquisition,
         model = def_model,
     )
@@ -60,7 +67,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     )
 
     ### termination condition
-    term_cond = IterLimit(80)
+    term_cond = IterLimit(10) # TODO
 
     ### the metric
     metric_cb = MetricCallback(;
@@ -101,18 +108,16 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         metric = MMDMetric(;
             kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         ),
-    )
 
-    # plot
-    plot_cb = PlotModule.PlotCB(;
-        plot_each = 10,
+        # ### plot callback
+        # plot_callback = PlotModule.PlotCB(;
+        #     problem = def_problem,
+        #     plot_each = 1,
+        # ),
     )
 
     options = BolfiOptions(;
-        callback = CombinedCallback(
-            metric_cb,
-            # plot_cb, # TODO
-        ),
+        callback = metric_cb,
     )
 
     ### RUN

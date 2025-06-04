@@ -110,7 +110,7 @@ Return the constraint values for the outputs of the given problem.
 y_max(::AbstractProblem) = nothing
 
 """
-    reference(::AbstractProblem) -> ::Union{Nothing, Matrix{Float64}}
+    reference(::AbstractProblem) -> ::Union{Function, Matrix{Float64}}
 
 Returns either the `true_likelihood` or the `reference_samples`
 depending on which of the `true_f` and `reference_samples` function have beed defined for the problem.

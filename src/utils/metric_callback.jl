@@ -7,6 +7,7 @@
     score_history::Vector{Float64} = Float64[]
     true_samples::Union{Nothing, Matrix{Float64}} = nothing
     approx_samples::Union{Nothing, Matrix{Float64}} = nothing
+    plot_callback::Union{Nothing, BolfiCallback} = nothing
 end
 
 function (cb::MetricCallback)(problem::BolfiProblem; kwargs...)
@@ -32,4 +33,7 @@ function (cb::MetricCallback)(problem::BolfiProblem; kwargs...)
     
     @show score
     push!(cb.score_history, score)
+
+    ### plot callback
+    cb.plot_callback(problem, cb; kwargs...)
 end

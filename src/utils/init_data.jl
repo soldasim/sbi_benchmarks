@@ -7,6 +7,7 @@ Generate `count` initial data points sampled from the `x_prior` of the given pro
 function get_init_data(problem::AbstractProblem, count::Int)
     prior = x_prior(problem)
     @assert extrema(prior) == domain(problem).bounds
+    @show domain(problem).bounds
     sim = simulator(problem)
 
     X = rand(prior, count)
