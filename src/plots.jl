@@ -1,5 +1,5 @@
 
-function plot_results(problem::AbstractProblem)
+function plot_results(problem::AbstractProblem; save_plot=false)
     dir = data_dir(problem)
 
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
@@ -47,5 +47,7 @@ function plot_results(problem::AbstractProblem)
     end
 
     axislegend(ax)
+
+    save_plot && save(plot_dir() * "/" * string(typeof(problem)) * ".png", fig)
     fig
 end
