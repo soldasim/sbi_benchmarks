@@ -176,7 +176,7 @@ version = "0.4.7"
 
 [[deps.BOLFI]]
 deps = ["BOSS", "Distributions", "ForwardDiff", "ImportanceSampling", "KernelFunctions", "LinearAlgebra", "Optimization", "ProgressMeter", "Random", "SpecialFunctions", "Statistics", "StatsFuns"]
-git-tree-sha1 = "9d4699936d75966c026f98b7335806b71b67f167"
+git-tree-sha1 = "bda047045fb15eb927809235398db7e77b60223d"
 repo-rev = "dev"
 repo-url = "https://github.com/soldasim/BOLFI.jl"
 uuid = "631834c2-07fe-4b6b-876a-15b6a4e37445"
@@ -191,9 +191,9 @@ version = "0.3.0"
     Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [[deps.BOSS]]
-deps = ["AbstractGPs", "Bijectors", "Distributed", "Distributions", "InteractiveUtils", "InverseFunctions", "LatinHypercubeSampling", "LinearAlgebra", "Optimization", "Random"]
-git-tree-sha1 = "e847f33f869c0a0f3d348fee6b2546f4e6c69e6e"
-repo-rev = "dev"
+deps = ["AbstractGPs", "Bijectors", "Distributed", "Distributions", "InteractiveUtils", "InverseFunctions", "LatinHypercubeSampling", "LinearAlgebra", "Optimization", "Random", "SpecialFunctions"]
+git-tree-sha1 = "f159ba7ad8a9ad61a28fbd16459725dc812772ee"
+repo-rev = "models"
 repo-url = "https://github.com/soldasim/BOSS.jl"
 uuid = "15052f3f-a82a-4ca3-bbc4-f478a3bd1ae2"
 version = "0.4.0"
@@ -788,9 +788,9 @@ version = "6.1.2+0"
 
 [[deps.FFTW]]
 deps = ["AbstractFFTs", "FFTW_jll", "LinearAlgebra", "MKL_jll", "Preferences", "Reexport"]
-git-tree-sha1 = "7de7c78d681078f027389e067864a8d53bd7c3c9"
+git-tree-sha1 = "797762812ed063b9b94f6cc7742bc8883bb5e69e"
 uuid = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-version = "1.8.1"
+version = "1.9.0"
 
 [[deps.FFTW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -2772,9 +2772,9 @@ version = "1.0.1"
 
 [[deps.Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "OrderedCollections", "TableTraits"]
-git-tree-sha1 = "598cd7c1f68d1e205689b1c2fe65a9f85846f297"
+git-tree-sha1 = "f2c1efbc8f3a609aadf318094f8fc5204bdaf344"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.12.0"
+version = "1.12.1"
 
 [[deps.Tar]]
 deps = ["ArgTools", "SHA"]
@@ -2805,10 +2805,10 @@ uuid = "8290d209-cae3-49c0-8002-c8c24d57dab5"
 version = "0.5.4"
 
 [[deps.TiffImages]]
-deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "Mmap", "OffsetArrays", "PkgVersion", "ProgressMeter", "SIMD", "UUIDs"]
-git-tree-sha1 = "f21231b166166bebc73b99cea236071eb047525b"
+deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "Mmap", "OffsetArrays", "PkgVersion", "PrecompileTools", "ProgressMeter", "SIMD", "UUIDs"]
+git-tree-sha1 = "02aca429c9885d1109e58f400c333521c13d48a0"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
-version = "0.11.3"
+version = "0.11.4"
 
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]

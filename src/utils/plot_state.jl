@@ -38,7 +38,7 @@ function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallb
     xs_approx = metric.approx_samples
     scatter!(ax, xs_approx[1, :], xs_approx[2, :], color=:red, marker=:x, markersize=4, label="Approx. Samples")
 
-    scatter!(ax, X[1,:], X[2,:], color=:white, markersize=6, label="Data")
+    scatter!(ax, X[1,:], X[2,:], color=:white, markersize=6)
     scatter!(ax, X[1,:], X[2,:], color=:black, markersize=4, label="Data")
     
     axislegend(ax)

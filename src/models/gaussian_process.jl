@@ -14,6 +14,7 @@ function construct_model(::GaussianProcessModel, problem::AbstractProblem)
     d = (bounds[2] .- bounds[1])
     
     return GaussianProcess(;
+        mean = prior_mean(problem),
         kernel = BOSS.Matern32Kernel(),
         lengthscale_priors = fill(product_distribution(calc_inverse_gamma.(d ./ 20, d)), y_dim_),
         amplitude_priors = calc_inverse_gamma.(y_extrema(problem)...),

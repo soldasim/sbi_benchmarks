@@ -17,6 +17,7 @@ import ..simulator
 import ..domain
 import ..y_max
 import ..likelihood
+import ..prior_mean
 import ..x_prior
 import ..y_extrema
 import ..noise_std_priors

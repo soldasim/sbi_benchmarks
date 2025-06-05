@@ -20,6 +20,7 @@ import ..simulator
 import ..domain
 import ..y_max
 import ..likelihood
+import ..prior_mean
 import ..x_prior
 import ..y_extrema
 import ..noise_std_priors
@@ -44,7 +45,10 @@ likelihood(::ABProblem) = NormalLikelihood(; y_obs, std_obs)
 # likelihood(::ABProblem) = NormalLikelihood(; y_obs=[0.], std_obs)
 # likelihood(::ABProblem) = GutmannNormalLikelihood(; ϵ=0., std_δ=sdt_obs[1])
 
+# TODO gutmann
 prior_mean(::ABProblem) = y_obs
+# prior_mean(::ABProblem) = zero(y_obs)
+# prior_mean(::ABProblem) = [0.]
 
 x_prior(::ABProblem) = _get_trunc_x_prior()
 
