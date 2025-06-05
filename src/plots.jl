@@ -1,6 +1,9 @@
 
 function plot_results(problem::AbstractProblem; save_plot=false)
+    ### setings
     dir = data_dir(problem)
+    plotted_groups = ["standard", "absval", "ig2"]
+    ###
 
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
@@ -8,13 +11,16 @@ function plot_results(problem::AbstractProblem; save_plot=false)
     for file in files
         fname = split(basename(file), ".")[1]
         group = split(fname, "_")[1]
+        
+        startswith(fname, "start") && continue
+        endswith(fname, "extras") && continue
+
         data = load(file)
-        if haskey(data, "score")
-            if !haskey(scores_by_group, group)
-                scores_by_group[group] = Vector{Vector{Float64}}()
-            end
-            push!(scores_by_group[group], data["score"])
+        @assert haskey(data, "score")
+        if !haskey(scores_by_group, group)
+            scores_by_group[group] = Vector{Vector{Float64}}()
         end
+        push!(scores_by_group[group], data["score"])
     end
 
     fig = Figure()
@@ -25,6 +31,8 @@ function plot_results(problem::AbstractProblem; save_plot=false)
     color_map = Dict(group => colors[mod1(i, length(colors))] for (i, group) in enumerate(group_names))
 
     for (group, scores) in scores_by_group
+        group in plotted_groups || continue
+
         color = color_map[group]
         # scores is a Vector of score histories (each is a Vector)
         # Pad with NaN to equal length if needed

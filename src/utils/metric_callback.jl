@@ -35,5 +35,7 @@ function (cb::MetricCallback)(problem::BolfiProblem; kwargs...)
     push!(cb.score_history, score)
 
     ### plot callback
-    cb.plot_callback(problem, cb; kwargs...)
+    isnothing(cb.plot_callback) || cb.plot_callback(problem, cb; kwargs...)
+
+    nothing
 end
