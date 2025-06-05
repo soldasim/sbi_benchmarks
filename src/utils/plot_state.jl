@@ -6,20 +6,22 @@ using CairoMakie
 import ..MetricCallback
 import ..AbstractProblem
 import ..reference
+import ..plot_dir
 
 @kwdef struct PlotCB <: BolfiCallback
     problem::AbstractProblem
     plot_each::Int = 1
+    save_plots::Bool = false
 end
 
 function (cb::PlotCB)(bolfi::BolfiProblem, metric::MetricCallback; term_cond, first, kwargs...)
     first && return
     (term_cond.iter % cb.plot_each == 0) || return
 
-    plot_state(bolfi, cb.problem, metric)
+    plot_state(bolfi, cb.problem, metric, term_cond.iter; cb.save_plots)
 end
 
-function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallback)
+function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallback, iter::Int; save_plots=false)
     exp_post = posterior_mean(bolfi)
     bounds = bolfi.problem.domain.bounds
     X = bolfi.problem.data.X
@@ -42,7 +44,14 @@ function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallb
     scatter!(ax, X[1,:], X[2,:], color=:black, markersize=4, label="Data")
     
     axislegend(ax)
-    display(fig)
+
+    if save_plots
+        dir = plot_dir() * "/state_plots"
+        mkpath(dir)
+        save(dir * "/" * string(typeof(p)) * "_$iter.png", fig)
+    else
+        display(fig)
+    end
 end
 
 end # module PlotModule

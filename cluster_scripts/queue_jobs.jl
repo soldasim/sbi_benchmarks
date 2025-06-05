@@ -3,7 +3,7 @@
 include("../src/main.jl")
 
 function queue_jobs(problem::AbstractProblem)
-    run_name = "ig" # the name used for storing data from this run
+    run_name = "_test" # the name used for storing data from this run
     problem_name = string(typeof(problem))
 
     start_files = Glob.glob(data_dir(problem) * "/start_*.jld2")
@@ -15,6 +15,7 @@ function queue_jobs(problem::AbstractProblem)
         # data = load(start_file, "data")
 
         # main(; run_name, save_data=true, data, run_idx)
+        @info "Queuing run \"$(run_name)\" of problem \"$(problem_name)\" with idx \"$(run_idx)\""
         Base.run(`sbatch -p cpulong cluster_scripts/run.sh $run_name $problem_name $run_idx`)
     end
 
