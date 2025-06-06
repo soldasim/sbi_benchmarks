@@ -12,26 +12,28 @@ using CairoMakie
 include("include_code.jl")
 include("data_paths.jl")
 include("generate_starts.jl")
-include("plots.jl")
 
 function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
     ### problem
     def_problem = ABProblem()
     # def_problem = SIRProblem()
 
-    ### settings
     init_data_count = 3
 
-    def_model = GaussianProcessModel()
+    ### settings
+    parallel = false # PRIMA.jl causes StackOverflow when parallelized on Linux
+
+    # def_model = GaussianProcessModel()
+    def_model = NonstationaryGPModel()
     
-    acquisition = PostVarAcq()
-    # acquisition = InfoGainInt(;
-    #     x_samples = 1000,
-    #     samples = 20,
-    #     x_proposal = x_prior(def_problem),
-    #     y_kernel = BOSS.GaussianKernel(),
-    #     p_kernel = BOSS.GaussianKernel(),
-    # )
+    # acquisition = PostVarAcq()
+    acquisition = InfoGainInt(;
+        x_samples = 1000,
+        samples = 20,
+        x_proposal = x_prior(def_problem),
+        y_kernel = BOSS.GaussianKernel(),
+        p_kernel = BOSS.GaussianKernel(),
+    )
     
     ### utils
     bounds = domain(def_problem).bounds
@@ -55,19 +57,19 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
         multistart = 24,
-        parallel = true,
+        parallel,
         static_schedule = true, # issues with PRIMA.jl
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
         multistart = 24,
-        parallel = true,
+        parallel,
         static_schedule = true, # issues with PRIMA.jl
         rhoend = 1e-4,
     )
 
     ### termination condition
-    term_cond = IterLimit(10) # TODO
+    term_cond = IterLimit(80) # TODO
 
     ### the metric
     metric_cb = MetricCallback(;
@@ -77,7 +79,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         #     likelihood_maximizer = LikelihoodMaximizer(;
         #         algorithm = BOBYQA(),
         #         multistart = 24,
-        #         parallel = true,
+        #         parallel,
         #         static_schedule = true, # issues with PRIMA.jl
         #         rhoend = 1e-4,
         #     ),
@@ -88,7 +90,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
             # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
             #     algorithm = NEWUOA(),
             #     multistart = 24,
-            #     parallel = true,
+            #     parallel,
             #     static_schedule = true, # issues with PRIMA.jl
             #     rhoend = 1e-2,
             # ),
@@ -96,7 +98,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
             gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
                 algorithm = BOBYQA(),
                 multistart = 24,
-                parallel = true,
+                parallel,
                 static_schedule = true, # issues with PRIMA.jl
                 cluster_ϵs = nothing,
                 rel_min_weight = 1e-8,
@@ -109,10 +111,12 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
             kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         ),
 
+        # TODO
         # ### plot callback
         # plot_callback = PlotModule.PlotCB(;
         #     problem = def_problem,
         #     plot_each = 1,
+        #     save_plots = true,
         # ),
     )
 

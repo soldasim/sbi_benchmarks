@@ -1,3 +1,4 @@
+include("main.jl")
 
 function plot_results(problem::AbstractProblem; save_plot=false)
     ### setings
