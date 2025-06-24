@@ -23,17 +23,17 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     ### settings
     parallel = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
-    # def_model = GaussianProcessModel()
-    def_model = NonstationaryGPModel()
+    def_model = GaussianProcessModel()
+    # def_model = NonstationaryGPModel()
     
-    # acquisition = PostVarAcq()
-    acquisition = InfoGainInt(;
-        x_samples = 1000,
-        samples = 20,
-        x_proposal = x_prior(def_problem),
-        y_kernel = BOSS.GaussianKernel(),
-        p_kernel = BOSS.GaussianKernel(),
-    )
+    acquisition = PostVarAcq()
+    # acquisition = InfoGainInt(;
+    #     x_samples = 1000,
+    #     samples = 20,
+    #     x_proposal = x_prior(def_problem),
+    #     y_kernel = BOSS.GaussianKernel(),
+    #     p_kernel = BOSS.GaussianKernel(),
+    # )
     
     ### utils
     bounds = domain(def_problem).bounds
@@ -120,34 +120,27 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         # ),
     )
 
+    ### save results
+    dir = data_dir(def_problem)
+    filepath = data_filepath(def_problem, run_name, run_idx)
+
+    if save_data
+        callback = CombinedCallback(
+            metric_cb,
+            SaveCallback(; dir, filepath),
+        )
+    else
+        callback = CombinedCallback(
+            metric_cb,
+        )
+    end
+
     options = BolfiOptions(;
-        callback = metric_cb,
+        callback,
     )
 
     ### RUN
     bolfi!(problem; model_fitter, acq_maximizer, term_cond, options)
-
-    ### save results
-    dir = data_dir(def_problem)
-    filename = data_filename(def_problem, run_name, run_idx)
-    
-    if save_data
-        mkpath(dir)
-        save(filename * "_extras.jld2", Dict(
-            "run_idx" => run_idx,
-            "problem" => problem,
-            "model_fitter" => model_fitter,
-            "acq_maximizer" => acq_maximizer,
-            "term_cond" => term_cond,
-            "options" => options,
-            "metric" => metric_cb,
-        ))
-        save(filename * ".jld2", Dict(
-            "run_idx" => run_idx,
-            "data" => (problem.problem.data.X, problem.problem.data.Y),
-            "score" => metric_cb.score_history,
-        ))
-    end
 
     return problem
 end
@@ -166,4 +159,41 @@ function run(problem::AbstractProblem)
     end
 
     nothing
+end
+
+"""
+    SaveCallback(; kwargs...)
+
+Saves the run data after every iteration (by overwriting the data stored in the previous iteration).
+
+# Keywords
+- `dir::String`: Directory to save the data to.
+- `filepath::String`: Filepath to save the data to (without extension).
+- `run_idx::Union{Int, Nothing} = nothing`
+"""
+@kwdef struct SaveCallback <: BolfiCallback
+    dir::String
+    filepath::String
+    run_idx::Union{Int, Nothing} = nothing
+end
+
+function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maximizer, term_cond, options)
+    metric_cb = options.callback.callback.callbacks[1]
+    @assert metric_cb isa MetricCallback
+    
+    mkpath(cb.dir)
+    save(cb.filepath * "_extras.jld2", Dict(
+        "run_idx" => cb.run_idx,
+        "problem" => problem,
+        "model_fitter" => model_fitter,
+        "acq_maximizer" => acq_maximizer,
+        "term_cond" => term_cond,
+        "options" => options,
+        "metric" => metric_cb,
+    ))
+    save(cb.filepath * ".jld2", Dict(
+        "run_idx" => cb.run_idx,
+        "data" => (problem.problem.data.X, problem.problem.data.Y),
+        "score" => metric_cb.score_history,
+    ))
 end
