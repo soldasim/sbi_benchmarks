@@ -6,7 +6,8 @@ using CairoMakie
 import ..MetricCallback
 import ..AbstractProblem
 import ..reference
-import ..plot_dir
+
+include("../data_paths.jl")
 
 @kwdef struct PlotCB <: BolfiCallback
     problem::AbstractProblem

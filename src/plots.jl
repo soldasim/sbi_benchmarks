@@ -25,7 +25,7 @@ function plot_results(problem::AbstractProblem; save_plot=false)
     end
 
     fig = Figure()
-    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group")
+    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", yscale=log)
 
     colors = Makie.wong_colors()  # or use any preferred color palette
     group_names = collect(keys(scores_by_group))
@@ -40,19 +40,21 @@ function plot_results(problem::AbstractProblem; save_plot=false)
         maxlen = maximum(length.(scores))
         padded = [vcat(s, fill(NaN, maxlen - length(s))) for s in scores]
         arr = reduce(hcat, padded)
+        xs = 0:maxlen-1
+
         # Compute statistics ignoring NaNs
         median_scores = mapslices(median∘skipmissing, arr; dims=2)[:]
         q25 = mapslices(x -> quantile(skipmissing(x), 0.25), arr; dims=2)[:]
         q75 = mapslices(x -> quantile(skipmissing(x), 0.75), arr; dims=2)[:]
         # Plot median line
-        lines!(ax, 1:maxlen, median_scores, label=group, color=color)
+        lines!(ax, xs, median_scores, label=group, color=color)
         # Plot quantile band with alpha
-        band!(ax, 1:maxlen, q25, q75; color=color, alpha=0.6)
+        band!(ax, xs, q25, q75; color=color, alpha=0.6)
 
         q10 = mapslices(x -> quantile(skipmissing(x), 0.1), arr; dims=2)[:]
         q90 = mapslices(x -> quantile(skipmissing(x), 0.9), arr; dims=2)[:]
-        lines!(ax, 1:maxlen, q10; color=color, linestyle=:dot, linewidth=1)
-        lines!(ax, 1:maxlen, q90; color=color, linestyle=:dot, linewidth=1)
+        lines!(ax, xs, q10; color=color, linestyle=:dot, linewidth=1)
+        lines!(ax, xs, q90; color=color, linestyle=:dot, linewidth=1)
     end
 
     axislegend(ax)
