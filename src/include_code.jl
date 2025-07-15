@@ -6,4 +6,3 @@ include("utils/include.jl")
 
 # Modules
 include("problems/include.jl")
-include("models/include.jl")

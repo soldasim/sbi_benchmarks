@@ -2,7 +2,7 @@
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "731fe736c23d7219d2777dc8282eadf7b9c1d479"
+project_hash = "143128ffb485bfd2ad5ce2a62d70e70c1c0781ce"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "be7ae030256b8ef14a441726c4c37766b90b93a3"
@@ -1122,14 +1122,6 @@ git-tree-sha1 = "0936ba688c6d201805a83da835b55c61a180db52"
 uuid = "905a6f67-0a94-5f89-b386-d35d92009cd1"
 version = "3.1.11+0"
 
-[[deps.ImportanceSampling]]
-deps = ["Distributions", "LinearAlgebra", "Optimization", "ProgressMeter"]
-git-tree-sha1 = "211c37731efb98aeb696e3f5ee210f8ce56e70ab"
-repo-rev = "experimental"
-repo-url = "https://github.com/soldasim/ImportanceSampling.jl"
-uuid = "4f2d446e-6089-4924-a007-48554a167aee"
-version = "0.1.0"
-
 [[deps.IndirectArrays]]
 git-tree-sha1 = "012e604e1c7458645cb8b436f8fba789a51b257f"
 uuid = "9b13fd28-a010-5f03-acff-a1bbcff69959"
@@ -1831,9 +1823,9 @@ version = "4.4.0"
 
 [[deps.OptimizationBase]]
 deps = ["ADTypes", "ArrayInterface", "DifferentiationInterface", "DocStringExtensions", "FastClosures", "LinearAlgebra", "PDMats", "Reexport", "Requires", "SciMLBase", "SparseArrays", "SparseConnectivityTracer", "SparseMatrixColorings"]
-git-tree-sha1 = "d42ca664e1fd78cdbe4186d4773d4fa51e1a0e78"
+git-tree-sha1 = "0657456702890cf3c710e7c31e0e53858796e2e6"
 uuid = "bca83a33-5cc9-4baa-983d-23429ab6bcbb"
-version = "2.8.0"
+version = "2.9.0"
 
     [deps.OptimizationBase.extensions]
     OptimizationEnzymeExt = "Enzyme"
@@ -2087,9 +2079,7 @@ version = "0.4.4"
 
 [[deps.PRIMA]]
 deps = ["LinearAlgebra", "PRIMA_jll", "TypeUtils"]
-git-tree-sha1 = "63b507ebd4bc5d95537f0f5f14d76e80dfc434ec"
-repo-rev = "main"
-repo-url = "https://github.com/libprima/PRIMA.jl"
+git-tree-sha1 = "a066ecc3478e57377411d748125f572bf4e39cf3"
 uuid = "0a7d04aa-8ac2-47b3-b7a7-9dbd6ad661ed"
 version = "0.2.4"
 
@@ -2201,9 +2191,9 @@ version = "0.2.4"
 
 [[deps.PreallocationTools]]
 deps = ["Adapt", "ArrayInterface", "ForwardDiff"]
-git-tree-sha1 = "7a5e02659e293b25a4bfaeeb6cd268acd0742eba"
+git-tree-sha1 = "2cc315bb7f6e4d59081bad744cdb911d6374fc7f"
 uuid = "d236fae5-4411-538c-8e31-a6e3d9e00b46"
-version = "0.4.28"
+version = "0.4.29"
 
     [deps.PreallocationTools.extensions]
     PreallocationToolsReverseDiffExt = "ReverseDiff"

@@ -3,7 +3,7 @@
     ABProblem()
 
 The analytical toy problem of inferring the parameters `a`, `b`
-given the observation `y_obs = [1.]`.
+given the observation `z_obs = [1.]`.
 
 The blackbox simulator realizes the function `y = a * b`.
 
@@ -41,13 +41,13 @@ domain(::ABProblem) = Domain(;
 )
 
 # TODO gutmann
-likelihood(::ABProblem) = NormalLikelihood(; y_obs, std_obs)
-# likelihood(::ABProblem) = NormalLikelihood(; y_obs=[0.], std_obs)
+likelihood(::ABProblem) = NormalLikelihood(; z_obs, std_obs)
+# likelihood(::ABProblem) = NormalLikelihood(; z_obs=[0.], std_obs)
 # likelihood(::ABProblem) = GutmannNormalLikelihood(; ϵ=0., std_δ=sdt_obs[1])
 
 # TODO gutmann
-prior_mean(::ABProblem) = y_obs
-# prior_mean(::ABProblem) = zero(y_obs)
+prior_mean(::ABProblem) = z_obs
+# prior_mean(::ABProblem) = zero(z_obs)
 # prior_mean(::ABProblem) = [0.]
 
 x_prior(::ABProblem) = _get_trunc_x_prior()
@@ -61,7 +61,7 @@ true_f(::ABProblem) = f_
 
 # --- UTILS ---
 
-const y_obs = [1.]
+const z_obs = [1.]
 const std_obs = [0.2]
 const std_sim = [0.]
 
@@ -77,12 +77,12 @@ end
 # function ab_simulation(x; noise_std=std_sim)
 #     y = f_(x)
 #     y .+= rand(Normal(0., noise_std[1]))
-#     return abs.(y .- y_obs)
+#     return abs.(y .- z_obs)
 # end
 # function ab_simulation(x; noise_std=std_sim)
 #     y = f_(x)
 #     y .+= rand(Normal(0., noise_std[1]))
-#     return [abs(y[1] .- y_obs[1])]
+#     return [abs(y[1] .- z_obs[1])]
 # end
 
 _get_bounds() = ([-5., -5.], [5., 5.])

@@ -19,11 +19,11 @@ function (cb::MetricCallback)(problem::BolfiProblem; kwargs...)
 
     ### sample posterior
     if cb.reference isa Function
-        true_samples = sample_posterior(cb.sampler, cb.reference, prior, domain, cb.sample_count)
+        true_samples, _ = sample_posterior(cb.sampler, cb.reference, prior, domain, cb.sample_count)
     else
         true_samples = cb.reference
     end
-    approx_samples = sample_posterior(cb.sampler, approx_like, prior, domain, cb.sample_count)
+    approx_samples, _ = sample_posterior(cb.sampler, approx_like, prior, domain, cb.sample_count)
     
     cb.true_samples = true_samples
     cb.approx_samples = approx_samples

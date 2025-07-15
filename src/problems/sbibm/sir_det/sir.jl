@@ -48,14 +48,14 @@ end
 
 function likelihood(::SIRProblem)
     return BinomialLikelihood(;
-        y_obs = Int64.(y_obs),
+        z_obs = Int64.(z_obs),
         trials = fill(1000, 10),
         int_grid_size = 200,
     )
 end
 
 function prior_mean(p::SIRProblem)
-    ps = y_obs ./ likelihood(p).trials
+    ps = z_obs ./ likelihood(p).trials
     return ps
 end
 
@@ -107,8 +107,8 @@ function _get_bounds()
     return bounds
 end
 
-const y_obs = pyconvert(Matrix{Float64}, py"sir_observation")[1,:]
-const y_dim = length(y_obs)
+const z_obs = pyconvert(Matrix{Float64}, py"sir_observation")[1,:]
+const y_dim = length(z_obs)
 const bounds = _get_bounds()
 const ref_samples = pyconvert(Matrix{Float64}, py"sir_reference_samples")' |> collect
 

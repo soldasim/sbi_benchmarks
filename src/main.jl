@@ -14,46 +14,69 @@ include("data_paths.jl")
 include("generate_starts.jl")
 
 function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
-    ### problem
-    def_problem = ABProblem()
-    # def_problem = SIRProblem()
-
-    init_data_count = 3
-
-    ### settings
-    parallel = false # PRIMA.jl causes StackOverflow when parallelized on Linux
-
-    def_model = GaussianProcessModel()
-    # def_model = NonstationaryGPModel()
     
-    acquisition = PostVarAcq()
+    ### PROBLEM ###
+    problem = ABProblem()
+    # problem = SIRProblem()
+    # problem = SimpleProblem()
+
+    
+    ### SETTINGS ###
+    init_data_count = 3
+    parallel = true # PRIMA.jl causes StackOverflow when parallelized on Linux
+
+    
+    ### SURROGATE MODEL ###
+    x_dim_ = x_dim(problem)
+    y_dim_ = y_dim(problem)
+    bounds = domain(problem).bounds
+    d = (bounds[2] .- bounds[1])
+
+    model = GaussianProcess(;
+        mean = prior_mean(problem),
+        kernel = BOSS.Matern32Kernel(),
+        lengthscale_priors = fill(product_distribution(calc_inverse_gamma.(d ./ 20, d)), y_dim_),
+        amplitude_priors = calc_inverse_gamma.(y_extrema(problem)...),
+        noise_std_priors = noise_std_priors(problem),
+    )
+    # model = NonstationaryGP(;
+    #     mean = prior_mean(problem),
+    #     lengthscale_model = BOSS.default_lengthscale_model(bounds, y_dim_),
+    #     amplitude_model = calc_inverse_gamma.(y_extrema(problem)...),
+    #     noise_std_model = noise_std_priors(problem),
+    # )
+    
+    
+    ### ACQUISITION ###
+    # acquisition = PostVarAcq()
+    acquisition = LogPostVarAcq()
     # acquisition = InfoGainInt(;
     #     x_samples = 1000,
     #     samples = 20,
-    #     x_proposal = x_prior(def_problem),
+    #     x_proposal = x_prior(problem),
     #     y_kernel = BOSS.GaussianKernel(),
     #     p_kernel = BOSS.GaussianKernel(),
     # )
-    
-    ### utils
-    bounds = domain(def_problem).bounds
 
-    ### init data
-    data = isnothing(data) ? get_init_data(def_problem, init_data_count) : data
+    
+    ### INIT DATA ###
+    data = isnothing(data) ? get_init_data(problem, init_data_count) : data
     @info "Initial data:"
     for x in eachcol(data.X)
         println("  $x")
     end
 
-    ### bolfi problem
-    problem = construct_bolfi_problem(;
-        problem = def_problem,
+    
+    ### BOLFI PROBLEM ###
+    bolfi = construct_bolfi_problem(;
+        problem,
         data,
         acquisition,
-        model = def_model,
+        model,
     )
 
-    ### algorithms
+    
+    ### ALGORITHMS ###
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
         multistart = 24,
@@ -68,12 +91,14 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         rhoend = 1e-4,
     )
 
-    ### termination condition
-    term_cond = IterLimit(80) # TODO
+    
+    ### TERMINATION CONDITION ###
+    term_cond = IterLimit(20) # TODO
 
-    ### the metric
+    
+    ### PERFORMANCE METRIC ###
     metric_cb = MetricCallback(;
-        reference = reference(def_problem),
+        reference = reference(problem),
         
         # sampler = RejectionSampler(;
         #     likelihood_maximizer = LikelihoodMaximizer(;
@@ -112,17 +137,18 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         ),
 
         # TODO
-        # ### plot callback
-        # plot_callback = PlotModule.PlotCB(;
-        #     problem = def_problem,
-        #     plot_each = 1,
-        #     save_plots = true,
-        # ),
+        ### plot callback
+        plot_callback = PlotModule.PlotCB(;
+            problem,
+            plot_each = 1,
+            save_plots = true,
+        ),
     )
 
-    ### save results
-    dir = data_dir(def_problem)
-    filepath = data_filepath(def_problem, run_name, run_idx)
+    
+    ### STORING RESULTS ###
+    dir = data_dir(problem)
+    filepath = data_filepath(problem, run_name, run_idx)
 
     if save_data
         callback = CombinedCallback(
@@ -139,14 +165,14 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         callback,
     )
 
-    ### RUN
-    bolfi!(problem; model_fitter, acq_maximizer, term_cond, options)
-
-    return problem
+    
+    ### RUN ###
+    bolfi!(bolfi; model_fitter, acq_maximizer, term_cond, options)
+    return bolfi
 end
 
 function run(problem::AbstractProblem)
-    run_name = "ig" # the name used for storing data from this run
+    run_name = "loglike" # the name used for storing data from this run
 
     start_files = Glob.glob(data_dir(problem) * "/start_*.jld2")
     @info "Running $(length(start_files)) runs of the $(typeof(problem)) ..."

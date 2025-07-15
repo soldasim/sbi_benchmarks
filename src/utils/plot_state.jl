@@ -23,13 +23,13 @@ function (cb::PlotCB)(bolfi::BolfiProblem, metric::MetricCallback; term_cond, fi
 end
 
 function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallback, iter::Int; save_plots=false)
-    exp_post = posterior_mean(bolfi)
+    est_post = posterior_mean(bolfi)
     bounds = bolfi.problem.domain.bounds
     X = bolfi.problem.data.X
 
     x = range(bounds[1][1], bounds[2][1], length=100)
     y = range(bounds[1][2], bounds[2][2], length=100)
-    Z = [exp_post([xi, yi]) for xi in x, yi in y]
+    Z = [est_post([xi, yi]) for xi in x, yi in y]
 
     fig = Figure()
     ax = Axis(fig[1, 1], xlabel="x₁", ylabel="x₂", title="Posterior Mean")
