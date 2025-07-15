@@ -14,11 +14,10 @@ include("data_paths.jl")
 include("generate_starts.jl")
 
 function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
-    
     ### PROBLEM ###
-    problem = ABProblem()
+    # problem = ABProblem()
     # problem = SIRProblem()
-    # problem = SimpleProblem()
+    problem = SimpleProblem()
 
     
     ### SETTINGS ###
@@ -93,7 +92,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
 
     
     ### TERMINATION CONDITION ###
-    term_cond = IterLimit(20) # TODO
+    term_cond = IterLimit(50) # TODO
 
     
     ### PERFORMANCE METRIC ###
@@ -137,12 +136,12 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         ),
 
         # TODO
-        ### plot callback
-        plot_callback = PlotModule.PlotCB(;
-            problem,
-            plot_each = 1,
-            save_plots = true,
-        ),
+        # ### plot callback
+        # plot_callback = PlotModule.PlotCB(;
+        #     problem,
+        #     plot_each = 1,
+        #     save_plots = true,
+        # ),
     )
 
     
@@ -206,8 +205,9 @@ end
 function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maximizer, term_cond, options)
     metric_cb = options.callback.callback.callbacks[1]
     @assert metric_cb isa MetricCallback
-    
+
     mkpath(cb.dir)
+
     save(cb.filepath * "_extras.jld2", Dict(
         "run_idx" => cb.run_idx,
         "problem" => problem,
@@ -222,4 +222,12 @@ function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maxi
         "data" => (problem.problem.data.X, problem.problem.data.Y),
         "score" => metric_cb.score_history,
     ))
+
+    if first
+        iters = [problem]
+    else
+        iters = load(cb.filepath * "_iters.jld2")["problems"]
+        push!(iters, problem)
+    end
+    save(cb.filepath * "_iters.jld2", Dict("problems" => iters))
 end

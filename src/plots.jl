@@ -1,28 +1,19 @@
 include("main.jl")
 
+using ProgressMeter
+
 function plot_results(problem::AbstractProblem; save_plot=false)
     ### setings
     dir = data_dir(problem)
-    plotted_groups = ["standard", "absval", "ig2"]
+    plotted_groups = ["TEST"] # TODO
     ###
 
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
 
-    for file in files
-        fname = split(basename(file), ".")[1]
-        group = split(fname, "_")[1]
-        
-        startswith(fname, "start") && continue
-        endswith(fname, "extras") && continue
-
-        data = load(file)
-        @assert haskey(data, "score")
-        if !haskey(scores_by_group, group)
-            scores_by_group[group] = Vector{Vector{Float64}}()
-        end
-        push!(scores_by_group[group], data["score"])
-    end
+    # TODO
+    # load_stored_scores!(scores_by_group, files, problem)
+    recalculate_scores!(scores_by_group, files, problem)
 
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", yscale=log)
@@ -61,4 +52,72 @@ function plot_results(problem::AbstractProblem; save_plot=false)
 
     save_plot && save(plot_dir() * "/" * string(typeof(problem)) * ".png", fig)
     fig
+end
+
+function load_stored_scores!(scores_by_group, files, problem)
+    for file in files
+        fname = split(basename(file), ".")[1]
+        group = split(fname, "_")[1]
+        
+        startswith(fname, "start") && continue  # skip start files
+        endswith(fname, "extras") && continue   # skip extras files
+        endswith(fname, "iters") && continue    # skip iters files
+
+        data = load(file)
+        @assert haskey(data, "score")
+        if !haskey(scores_by_group, group)
+            scores_by_group[group] = Vector{Vector{Float64}}()
+        end
+        push!(scores_by_group[group], data["score"])
+    end
+end
+
+function recalculate_scores!(scores_by_group, files, problem)
+    # TODO
+    metric = MMDMetric(;
+        kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
+    )
+
+    for file in files
+        fname = split(basename(file), ".")[1]
+        group = split(fname, "_")[1]
+        run_idx = split(fname, "_")[3]
+        
+        # startswith(fname, "start") && continue  # skip start files
+        endswith(fname, "iters") || continue    # only consider the iters files
+
+        iters = load(file)["problems"]
+
+        if !haskey(scores_by_group, group)
+            scores_by_group[group] = Vector{Vector{Float64}}()
+        end
+
+        # Recalculate the score using the MetricCallback
+
+        scores = zeros(length(iters))
+        @showprogress desc="Calculating run_$run_idx" for (idx, itr) in enumerate(iters)
+            scores[idx] = calculate_score(metric, problem, itr, sampler)
+        end
+        push!(scores_by_group[group], scores)
+    end
+
+    return scores_by_group
+end
+
+function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::BolfiProblem, sampler::DistributionSampler)
+    # TODO
+    sample_count = 1000
+
+    ref = reference(problem)
+    if ref isa Function
+        true_samples, _ = sample_posterior(sampler, ref, p.x_prior, p.problem.domain, sample_count)
+    else
+        true_samples = ref
+    end
+
+    approx_like = approx_likelihood(p)
+    approx_samples, _ = sample_posterior(sampler, approx_like, p.x_prior, p.problem.domain, sample_count)
+
+    score = calculate_metric(metric, true_samples, approx_samples)
+    return score
 end
