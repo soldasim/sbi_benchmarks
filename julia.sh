@@ -7,5 +7,6 @@ ml Python/3.10 # for cluster
 
 # start julia
 julia -e "
+    using Revise
     include(\"activate.jl\")
 " -i
