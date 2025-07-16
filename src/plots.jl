@@ -12,8 +12,8 @@ function plot_results(problem::AbstractProblem; save_plot=false)
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
 
     # TODO
-    # load_stored_scores!(scores_by_group, files, problem)
-    recalculate_scores!(scores_by_group, files, problem)
+    load_stored_scores!(scores_by_group, files, problem)
+    # recalculate_scores!(scores_by_group, files, problem)
 
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", yscale=log)
@@ -27,9 +27,10 @@ function plot_results(problem::AbstractProblem; save_plot=false)
 
         color = color_map[group]
         # scores is a Vector of score histories (each is a Vector)
-        # Pad with NaN to equal length if needed
+        # Pad with `missing` to equal length if needed
         maxlen = maximum(length.(scores))
-        padded = [vcat(s, fill(NaN, maxlen - length(s))) for s in scores]
+        allequal(length.(scores)) || @warn "Scores for group $group have different lengths, padding with `missing`."
+        padded = [vcat(s, fill(missing, maxlen - length(s))) for s in scores]
         arr = reduce(hcat, padded)
         xs = 0:maxlen-1
 
@@ -73,15 +74,40 @@ function load_stored_scores!(scores_by_group, files, problem)
 end
 
 function recalculate_scores!(scores_by_group, files, problem)
+    bounds = domain(problem).bounds
+
     # TODO
     metric = MMDMetric(;
         kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
     )
 
+    # TODO
+    sampler = AMISSampler(;
+            iters = 10,
+            proposal_fitter = BOLFI.AnalyticalFitter(), # re-fit the proposal analytically
+            # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
+            #     algorithm = NEWUOA(),
+            #     multistart = 24,
+            #     parallel,
+            #     static_schedule = true, # issues with PRIMA.jl
+            #     rhoend = 1e-2,
+            # ),
+            # gauss_mix_options = nothing,                # use Laplace approximation for the 0th iteration
+            gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
+                algorithm = BOBYQA(),
+                multistart = 24,
+                parallel,
+                static_schedule = true, # issues with PRIMA.jl
+                cluster_ϵs = nothing,
+                rel_min_weight = 1e-8,
+                rhoend = 1e-4,
+            ),
+        )
+
     for file in files
         fname = split(basename(file), ".")[1]
         group = split(fname, "_")[1]
-        run_idx = split(fname, "_")[3]
+        run_idx = split(fname, "_")[2]
         
         # startswith(fname, "start") && continue  # skip start files
         endswith(fname, "iters") || continue    # only consider the iters files

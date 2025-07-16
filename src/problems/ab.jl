@@ -40,19 +40,19 @@ domain(::ABProblem) = Domain(;
     bounds = _get_bounds(),
 )
 
-# TODO gutmann
+# TODO loglike
 likelihood(::ABProblem) = NormalLikelihood(; z_obs, std_obs)
-# likelihood(::ABProblem) = NormalLikelihood(; z_obs=[0.], std_obs)
-# likelihood(::ABProblem) = GutmannNormalLikelihood(; ϵ=0., std_δ=sdt_obs[1])
+# likelihood(::ABProblem) = ExpLikelihood()
 
-# TODO gutmann
+# TODO loglike
 prior_mean(::ABProblem) = z_obs
-# prior_mean(::ABProblem) = zero(z_obs)
 # prior_mean(::ABProblem) = [0.]
 
 x_prior(::ABProblem) = _get_trunc_x_prior()
 
+# TODO loglike
 y_extrema(::ABProblem) = ([0.1], [20.])
+# y_extrema(::ABProblem) = ([0.], [1000.]) # TODO ???
 
 noise_std_priors(::ABProblem) = [Dirac(0.)]
 
@@ -68,7 +68,7 @@ const std_sim = [0.]
 # the true blackbox function
 f_(x) = [x[1] * x[2]]
 
-# TODO gutmann
+# TODO loglike
 function ab_simulation(x; noise_std=std_sim)
     y = f_(x)
     y .+= rand(Normal(0., noise_std[1]))
@@ -76,13 +76,9 @@ function ab_simulation(x; noise_std=std_sim)
 end
 # function ab_simulation(x; noise_std=std_sim)
 #     y = f_(x)
-#     y .+= rand(Normal(0., noise_std[1]))
-#     return abs.(y .- z_obs)
-# end
-# function ab_simulation(x; noise_std=std_sim)
-#     y = f_(x)
-#     y .+= rand(Normal(0., noise_std[1]))
-#     return [abs(y[1] .- z_obs[1])]
+#     ll = logpdf(Normal(y[1], std_obs[1]), z_obs[1])
+#     ll += rand(Normal(0., noise_std[1]))
+#     return [ll]
 # end
 
 _get_bounds() = ([-5., -5.], [5., 5.])

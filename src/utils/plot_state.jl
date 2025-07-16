@@ -23,7 +23,10 @@ function (cb::PlotCB)(bolfi::BolfiProblem, metric::MetricCallback; term_cond, fi
 end
 
 function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallback, iter::Int; save_plots=false)
+    # TODO
     est_post = posterior_mean(bolfi)
+    # est_post = approx_posterior(bolfi)
+
     bounds = bolfi.problem.domain.bounds
     X = bolfi.problem.data.X
 

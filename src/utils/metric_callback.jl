@@ -15,15 +15,20 @@ function (cb::MetricCallback)(problem::BolfiProblem; kwargs...)
     domain = problem.problem.domain
 
     ### approximate likelihood
-    approx_like = likelihood_mean(problem)
+    # TODO
+    # approx_like = likelihood_mean(problem)
+    approx_like = approx_likelihood(problem)
 
     ### sample posterior
+    # TODO
     if cb.reference isa Function
-        true_samples, _ = sample_posterior(cb.sampler, cb.reference, prior, domain, cb.sample_count)
+        true_samples, ws = sample_posterior(cb.sampler, cb.reference, prior, domain, 20 * cb.sample_count)
+        true_samples = resample(true_samples, ws, cb.sample_count)
     else
         true_samples = cb.reference
     end
-    approx_samples, _ = sample_posterior(cb.sampler, approx_like, prior, domain, cb.sample_count)
+    approx_samples, ws = sample_posterior(cb.sampler, approx_like, prior, domain, 20 * cb.sample_count)
+    approx_samples = resample(approx_samples, ws, cb.sample_count)
     
     cb.true_samples = true_samples
     cb.approx_samples = approx_samples
