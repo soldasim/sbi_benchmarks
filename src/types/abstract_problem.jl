@@ -18,7 +18,13 @@ Each subtype of `AbstractProblem` *should* implement *at least one* of:
 - `reference_samples(::AbstractProblem) -> ::Union{Nothing, Matrix{Float64}}`: Defaults to `nothing`.
 
 The reference solution can be obtained by:
-- `reference(::AbstractProblem) -> ::Union{Function, Matrix{Float64}}`
+- `reference(::AbstractProblem) -> ::Union{Function, Matrix{Float64}}`:
+    Returns either the `true_posterior` or the `reference_samples`
+    depending on which of the `true_f` and `reference_samples` function have been defined for the problem.
+- `true_likelihood(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true likelihood
+    if `true_f` is defined for the given problem.
+- `true_posterior(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true posterior
+    if `true_f` is defined for the given problem.
 
 Each `AbstractProblem` additionally provides default implementations for:
 - `x_dim(::AbstractProblem) -> ::Int`
@@ -112,12 +118,12 @@ y_max(::AbstractProblem) = nothing
 """
     reference(::AbstractProblem) -> ::Union{Function, Matrix{Float64}}
 
-Returns either the `true_likelihood` or the `reference_samples`
+Returns either the `true_posterior` or the `reference_samples`
 depending on which of the `true_f` and `reference_samples` function have beed defined for the problem.
 """
 function reference(problem::AbstractProblem)
-    true_like = true_likelihood(problem)
-    isnothing(true_like) || return true_like
+    true_post = true_posterior(problem)
+    isnothing(true_post) || return true_post
     ref_samples = reference_samples(problem)
     isnothing(ref_samples) && error("Define `f_true` or `reference_samples` for the problem.")
     return ref_samples
@@ -129,7 +135,7 @@ end
 Return the true likelihood function of the given problem
 or `nothing` if the problem does not have the `true_f` function defined.
 
-The true likelihood is used to evaluate performance metrics.
+The true likelihood can be used to evaluate performance metrics.
 """
 function true_likelihood(problem::AbstractProblem)
     like = likelihood(problem)
@@ -141,6 +147,29 @@ function true_likelihood(problem::AbstractProblem)
         y = f(x)
         ll = loglike(like, y)
         return exp(ll)
+    end
+end
+
+"""
+    true_posterior(::AbstractProblem) -> ::Union{Nothing, Function}
+
+Return the true posterior function of the given problem
+or `nothing` if the problem does not have the `true_f` function defined.
+
+The true posterior can be used to evaluate performance metrics.
+"""
+function true_posterior(problem::AbstractProblem)
+    like = likelihood(problem)
+    prior = x_prior(problem)
+    f = true_f(problem)
+
+    isnothing(f) && return nothing
+
+    function true_post(x)
+        y = f(x)
+        ll = loglike(like, y)
+        lp = logpdf(prior, x)
+        return exp(ll + lp)
     end
 end
 

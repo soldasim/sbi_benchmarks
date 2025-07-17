@@ -136,13 +136,13 @@ function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::Bolf
 
     ref = reference(problem)
     if ref isa Function
-        true_samples, _ = sample_posterior(sampler, ref, p.x_prior, p.problem.domain, sample_count)
+        true_samples = pure_sample_posterior(sampler, ref, p.problem.domain, sample_count)
     else
         true_samples = ref
     end
 
-    approx_like = approx_likelihood(p)
-    approx_samples, _ = sample_posterior(sampler, approx_like, p.x_prior, p.problem.domain, sample_count)
+    est_post = posterior_estimate()(p)
+    approx_samples = pure_sample_posterior(sampler, est_post, p.problem.domain, sample_count)
 
     score = calculate_metric(metric, true_samples, approx_samples)
     return score

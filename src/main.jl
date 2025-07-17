@@ -9,15 +9,19 @@ using JLD2
 using Glob
 using CairoMakie
 
+# TODO
+# posterior_estimate() = approx_posterior
+posterior_estimate() = posterior_mean
+
 include("include_code.jl")
 include("data_paths.jl")
 include("generate_starts.jl")
 
 function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
     ### PROBLEM ###
-    # problem = ABProblem()
+    problem = ABProblem()
     # problem = SIRProblem()
-    problem = SimpleProblem()
+    # problem = SimpleProblem()
 
     
     ### SETTINGS ###
@@ -30,6 +34,9 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     y_dim_ = y_dim(problem)
     bounds = domain(problem).bounds
     d = (bounds[2] .- bounds[1])
+
+    # # TODO SimpleProblem custom model
+    # model = SimpleProblemModule.get_model()
 
     model = GaussianProcess(;
         mean = prior_mean(problem),
@@ -47,8 +54,8 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     
     
     ### ACQUISITION ###
-    # acquisition = PostVarAcq()
-    acquisition = LogPostVarAcq()
+    acquisition = PostVarAcq()
+    # acquisition = LogPostVarAcq()
     # acquisition = InfoGainInt(;
     #     x_samples = 1000,
     #     samples = 20,

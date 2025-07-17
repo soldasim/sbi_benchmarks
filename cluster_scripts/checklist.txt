@@ -2,7 +2,10 @@
 ### Experiment Setup
 - Basically, mostly just check "src/main.jl". Almost all setup should be there.
     - model, acquisition, iters
-- Additional settings can include: likelihood stuff in problem definiciton, src/utils/metric_callback.jl, src/utils/plot_state.jl
+    - `posterior_estimate`
+- Additional settings can include:
+    - likelihood stuff in problem definition
+    - custom model in "src/main.jl"
 
 ### Run Scripts
 - All setup of the script should be in "cluster_scripts/queue_jobs.jl".
