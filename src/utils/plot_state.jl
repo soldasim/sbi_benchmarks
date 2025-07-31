@@ -3,45 +3,55 @@ module PlotModule
 using BOLFI
 using CairoMakie
 
-import ..MetricCallback
 import ..AbstractProblem
 import ..reference
-import ..posterior_estimate
+import ..log_posterior_estimate
 
 include("../data_paths.jl")
 
 @kwdef struct PlotCB <: BolfiCallback
     problem::AbstractProblem
-    plot_each::Int = 1
+    sampler::DistributionSampler
+    sample_count::Int
+    plot_each::Int = 1000
     save_plots::Bool = false
 end
 
-function (cb::PlotCB)(bolfi::BolfiProblem, metric::MetricCallback; term_cond, first, kwargs...)
+function (cb::PlotCB)(bolfi::BolfiProblem; term_cond, first, kwargs...)
     first && return
     (term_cond.iter % cb.plot_each == 0) || return
 
-    plot_state(bolfi, cb.problem, metric, term_cond.iter; cb.save_plots)
+    plot_state(bolfi, cb.problem, cb.sampler, cb.sample_count, term_cond.iter; cb.save_plots)
 end
 
-function plot_state(bolfi::BolfiProblem, p::AbstractProblem, metric::MetricCallback, iter::Int; save_plots=false)
-    est_post = posterior_estimate()(bolfi)
+function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::DistributionSampler, sample_count::Int, iter::Int; save_plots=false)
+    est_logpost = log_posterior_estimate()(bolfi)
 
-    bounds = bolfi.problem.domain.bounds
+    domain = bolfi.problem.domain
+    lb, ub = domain.bounds
     X = bolfi.problem.data.X
 
-    x = range(bounds[1][1], bounds[2][1], length=100)
-    y = range(bounds[1][2], bounds[2][2], length=100)
-    Z = [est_post([xi, yi]) for xi in x, yi in y]
+    x = range(lb[1], ub[1], length=100)
+    y = range(lb[2], ub[2], length=100)
+    Z = [est_logpost([xi, yi]) for xi in x, yi in y]
 
     fig = Figure()
-    ax = Axis(fig[1, 1], xlabel="x₁", ylabel="x₂", title="Posterior Mean")
+    ax = Axis(fig[1, 1], xlabel="x₁", ylabel="x₂", title=string(log_posterior_estimate()))
     contourf!(ax, x, y, Z)
 
-    xs_ref = metric.true_samples
-    scatter!(ax, xs_ref[1, :], xs_ref[2, :], color=:blue, marker=:x, markersize=4, label="Reference Samples")
+    ### sample posterior
+    ref = reference(p)
+    if ref isa Function
+        true_samples = BOLFI.pure_sample_posterior(sampler, ref, domain, sample_count)
+    else
+        true_samples = ref
+    end
 
-    xs_approx = metric.approx_samples
-    scatter!(ax, xs_approx[1, :], xs_approx[2, :], color=:red, marker=:x, markersize=4, label="Approx. Samples")
+    approx_samples = BOLFI.pure_sample_posterior(sampler, est_logpost, domain, sample_count) 
+    ###
+
+    scatter!(ax, true_samples[1, :], true_samples[2, :], color=:blue, marker=:x, markersize=4, label="Reference Samples")
+    scatter!(ax, approx_samples[1, :], approx_samples[2, :], color=:red, marker=:x, markersize=4, label="Approx. Samples")
 
     scatter!(ax, X[1,:], X[2,:], color=:white, markersize=6)
     scatter!(ax, X[1,:], X[2,:], color=:black, markersize=4, label="Data")

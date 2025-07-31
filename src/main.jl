@@ -9,9 +9,12 @@ using JLD2
 using Glob
 using CairoMakie
 
+using Random
+Random.seed!(555)
+
 # TODO
-# posterior_estimate() = approx_posterior
-posterior_estimate() = posterior_mean
+# log_posterior_estimate() = log_posterior_mean
+log_posterior_estimate() = log_approx_posterior
 
 include("include_code.jl")
 include("data_paths.jl")
@@ -20,8 +23,8 @@ include("generate_starts.jl")
 function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
     ### PROBLEM ###
     problem = ABProblem()
-    # problem = SIRProblem()
     # problem = SimpleProblem()
+    # problem = SIRProblem()
 
     
     ### SETTINGS ###
@@ -54,8 +57,8 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     
     
     ### ACQUISITION ###
-    acquisition = PostVarAcq()
-    # acquisition = LogPostVarAcq()
+    acquisition = MaxVar()
+    # acquisition = LogMaxVar()
     # acquisition = InfoGainInt(;
     #     x_samples = 1000,
     #     samples = 20,
@@ -68,8 +71,8 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     ### INIT DATA ###
     data = isnothing(data) ? get_init_data(problem, init_data_count) : data
     @info "Initial data:"
-    for x in eachcol(data.X)
-        println("  $x")
+    for (x, y) in zip(eachcol(data.X), eachcol(data.Y))
+        println("  $x -> $y")
     end
 
     
@@ -87,13 +90,12 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         algorithm = NEWUOA(),
         multistart = 24,
         parallel,
-        static_schedule = true, # issues with PRIMA.jl
+        rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
         multistart = 24,
         parallel,
-        static_schedule = true, # issues with PRIMA.jl
         rhoend = 1e-4,
     )
 
@@ -101,54 +103,58 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     ### TERMINATION CONDITION ###
     term_cond = IterLimit(50) # TODO
 
+
+    ### SAMPLER ###
+    # sampler = RejectionSampler(;
+    #     logpdf_maximizer = LogpdfMaximizer(;
+    #         algorithm = BOBYQA(),
+    #         multistart = 24,
+    #         parallel,
+    #         static_schedule = true, # issues with PRIMA.jl
+    #         rhoend = 1e-4,
+    #     ),
+    # )
+    sampler = AMISSampler(;
+        iters = 10,
+        proposal_fitter = BOLFI.AnalyticalFitter(), # re-fit the proposal analytically
+        # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
+        #     algorithm = NEWUOA(),
+        #     multistart = 6,
+        #     parallel,
+        #     static_schedule = true, # issues with PRIMA.jl
+        #     rhoend = 1e-2,
+        # ),
+        # gauss_mix_options = nothing,                # use Laplace approximation for the 0th iteration
+        gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
+            algorithm = BOBYQA(),
+            multistart = 24,
+            parallel,
+            cluster_ϵs = nothing,
+            rel_min_weight = 1e-8,
+            rhoend = 1e-4,
+        ),
+    )
+
     
     ### PERFORMANCE METRIC ###
     metric_cb = MetricCallback(;
         reference = reference(problem),
-        
-        # sampler = RejectionSampler(;
-        #     likelihood_maximizer = LikelihoodMaximizer(;
-        #         algorithm = BOBYQA(),
-        #         multistart = 24,
-        #         parallel,
-        #         static_schedule = true, # issues with PRIMA.jl
-        #         rhoend = 1e-4,
-        #     ),
-        # ),
-        sampler = AMISSampler(;
-            iters = 10,
-            proposal_fitter = BOLFI.AnalyticalFitter(), # re-fit the proposal analytically
-            # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
-            #     algorithm = NEWUOA(),
-            #     multistart = 24,
-            #     parallel,
-            #     static_schedule = true, # issues with PRIMA.jl
-            #     rhoend = 1e-2,
-            # ),
-            # gauss_mix_options = nothing,                # use Laplace approximation for the 0th iteration
-            gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
-                algorithm = BOBYQA(),
-                multistart = 24,
-                parallel,
-                static_schedule = true, # issues with PRIMA.jl
-                cluster_ϵs = nothing,
-                rel_min_weight = 1e-8,
-                rhoend = 1e-4,
-            ),
-        ),
-        
+        logpost_estimator = log_posterior_estimate(),
+        sampler,
         sample_count = 1000,
         metric = MMDMetric(;
             kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         ),
+    )
 
-        # TODO
-        # ### plot callback
-        # plot_callback = PlotModule.PlotCB(;
-        #     problem,
-        #     plot_each = 1,
-        #     save_plots = true,
-        # ),
+
+    ### PLOTS ###
+    plot_cb = PlotModule.PlotCB(;
+        problem,
+        sampler,
+        sample_count = 1000,
+        plot_each = 10,
+        save_plots = true,
     )
 
     
@@ -163,7 +169,9 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         )
     else
         callback = CombinedCallback(
+            # TODO
             metric_cb,
+            # plot_cb,
         )
     end
 

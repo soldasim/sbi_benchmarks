@@ -54,9 +54,11 @@ x_prior(::ABProblem) = _get_trunc_x_prior()
 y_extrema(::ABProblem) = ([0.1], [20.])
 # y_extrema(::ABProblem) = ([0.], [1000.]) # TODO ???
 
+# TODO loglike
 noise_std_priors(::ABProblem) = [Dirac(0.)]
+# noise_std_priors(::ABProblem) = [Dirac(1.)]
 
-true_f(::ABProblem) = f_
+true_f(::ABProblem) = x -> ab_simulation(x; noise_std=zero(std_sim))
 
 
 # --- UTILS ---

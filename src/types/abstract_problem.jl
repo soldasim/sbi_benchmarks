@@ -19,11 +19,11 @@ Each subtype of `AbstractProblem` *should* implement *at least one* of:
 
 The reference solution can be obtained by:
 - `reference(::AbstractProblem) -> ::Union{Function, Matrix{Float64}}`:
-    Returns either the `true_posterior` or the `reference_samples`
+    Returns either the `true_logpost` or the `reference_samples`
     depending on which of the `true_f` and `reference_samples` function have been defined for the problem.
-- `true_likelihood(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true likelihood
+- `true_loglike(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true likelihood
     if `true_f` is defined for the given problem.
-- `true_posterior(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true posterior
+- `true_logpost(::AbstractProblem) -> ::Union{Nothing, Function}`: Returns the true posterior
     if `true_f` is defined for the given problem.
 
 Each `AbstractProblem` additionally provides default implementations for:
@@ -122,22 +122,22 @@ Returns either the `true_posterior` or the `reference_samples`
 depending on which of the `true_f` and `reference_samples` function have beed defined for the problem.
 """
 function reference(problem::AbstractProblem)
-    true_post = true_posterior(problem)
-    isnothing(true_post) || return true_post
+    logpost = true_logpost(problem)
+    isnothing(logpost) || return logpost
     ref_samples = reference_samples(problem)
     isnothing(ref_samples) && error("Define `f_true` or `reference_samples` for the problem.")
     return ref_samples
 end
 
 """
-    true_likelihood(::AbstractProblem) -> ::Union{Nothing, Function}
+    true_loglike(::AbstractProblem) -> ::Union{Nothing, Function}
 
-Return the true likelihood function of the given problem
+Return the true log-likelihood function of the given problem
 or `nothing` if the problem does not have the `true_f` function defined.
 
-The true likelihood can be used to evaluate performance metrics.
+The true log-likelihood can be used to evaluate performance metrics.
 """
-function true_likelihood(problem::AbstractProblem)
+function true_loglike(problem::AbstractProblem)
     like = likelihood(problem)
     f = true_f(problem)
 
@@ -146,19 +146,19 @@ function true_likelihood(problem::AbstractProblem)
     function true_like(x)
         y = f(x)
         ll = loglike(like, y)
-        return exp(ll)
+        return ll
     end
 end
 
 """
-    true_posterior(::AbstractProblem) -> ::Union{Nothing, Function}
+    true_logpost(::AbstractProblem) -> ::Union{Nothing, Function}
 
-Return the true posterior function of the given problem
+Return the true log-posterior function of the given problem
 or `nothing` if the problem does not have the `true_f` function defined.
 
-The true posterior can be used to evaluate performance metrics.
+The true log-posterior can be used to evaluate performance metrics.
 """
-function true_posterior(problem::AbstractProblem)
+function true_logpost(problem::AbstractProblem)
     like = likelihood(problem)
     prior = x_prior(problem)
     f = true_f(problem)
@@ -169,7 +169,7 @@ function true_posterior(problem::AbstractProblem)
         y = f(x)
         ll = loglike(like, y)
         lp = logpdf(prior, x)
-        return exp(ll + lp)
+        return ll + lp
     end
 end
 
