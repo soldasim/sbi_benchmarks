@@ -6,6 +6,9 @@
 - Additional settings can include:
     - likelihood stuff in problem definition
     - custom model in "src/main.jl"
+- On cluster additionally check "cluster_scripts/queue_jobs.jl":
+    - `run_name` !!!
+    - Maybe change `cpulong` to `cpuextralong` for some experiments
 
 ### Run Scripts
 - All setup of the script should be in "cluster_scripts/queue_jobs.jl".

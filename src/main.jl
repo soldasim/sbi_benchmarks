@@ -13,14 +13,16 @@ using Random
 Random.seed!(555)
 
 # TODO
-# log_posterior_estimate() = log_posterior_mean
-log_posterior_estimate() = log_approx_posterior
+log_posterior_estimate() = log_posterior_mean
+# log_posterior_estimate() = log_approx_posterior
+
+parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
 include("include_code.jl")
 include("data_paths.jl")
 include("generate_starts.jl")
 
-function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing)
+function main(; run_name="_test", save_data=false, metric=false, plots=false, data=nothing, run_idx=nothing)
     ### PROBLEM ###
     problem = ABProblem()
     # problem = SimpleProblem()
@@ -29,7 +31,6 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     
     ### SETTINGS ###
     init_data_count = 3
-    parallel = true # PRIMA.jl causes StackOverflow when parallelized on Linux
 
     
     ### SURROGATE MODEL ###
@@ -59,9 +60,9 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     ### ACQUISITION ###
     acquisition = MaxVar()
     # acquisition = LogMaxVar()
-    # acquisition = InfoGainInt(;
-    #     x_samples = 1000,
-    #     samples = 20,
+    # acquisition = EIIG(;
+    #     y_samples = 20,
+    #     x_samples = 2 * 10^x_dim(problem),
     #     x_proposal = x_prior(problem),
     #     y_kernel = BOSS.GaussianKernel(),
     #     p_kernel = BOSS.GaussianKernel(),
@@ -89,19 +90,19 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
         multistart = 24,
-        parallel,
+        parallel = parallel(),
         rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
         multistart = 24,
-        parallel,
+        parallel = parallel(),
         rhoend = 1e-4,
     )
 
     
     ### TERMINATION CONDITION ###
-    term_cond = IterLimit(50) # TODO
+    term_cond = IterLimit(100) # TODO
 
 
     ### SAMPLER ###
@@ -109,7 +110,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
     #     logpdf_maximizer = LogpdfMaximizer(;
     #         algorithm = BOBYQA(),
     #         multistart = 24,
-    #         parallel,
+    #         parallel = parallel(),
     #         static_schedule = true, # issues with PRIMA.jl
     #         rhoend = 1e-4,
     #     ),
@@ -120,7 +121,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
         #     algorithm = NEWUOA(),
         #     multistart = 6,
-        #     parallel,
+        #     parallel = parallel(),
         #     static_schedule = true, # issues with PRIMA.jl
         #     rhoend = 1e-2,
         # ),
@@ -128,7 +129,7 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
             algorithm = BOBYQA(),
             multistart = 24,
-            parallel,
+            parallel = parallel(),
             cluster_ϵs = nothing,
             rel_min_weight = 1e-8,
             rhoend = 1e-4,
@@ -141,42 +142,35 @@ function main(; run_name="_test", save_data=false, data=nothing, run_idx=nothing
         reference = reference(problem),
         logpost_estimator = log_posterior_estimate(),
         sampler,
-        sample_count = 1000,
+        sample_count = 2 * 10^x_dim(problem),
         metric = MMDMetric(;
             kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         ),
     )
+    # first callback in `callbacks` (this is important for `SaveCallback`)
+    callbacks = BolfiCallback[]
+    metric && push!(callbacks, metric_cb)
 
 
     ### PLOTS ###
     plot_cb = PlotModule.PlotCB(;
         problem,
         sampler,
-        sample_count = 1000,
+        sample_count = 2 * 10^x_dim(problem),
         plot_each = 10,
         save_plots = true,
     )
+    plots && push!(callbacks, plot_cb)
 
     
     ### STORING RESULTS ###
     dir = data_dir(problem)
     filepath = data_filepath(problem, run_name, run_idx)
-
-    if save_data
-        callback = CombinedCallback(
-            metric_cb,
-            SaveCallback(; dir, filepath),
-        )
-    else
-        callback = CombinedCallback(
-            # TODO
-            metric_cb,
-            # plot_cb,
-        )
-    end
+    data_cb = SaveCallback(; dir, filepath)
+    save_data && push!(callbacks, data_cb)
 
     options = BolfiOptions(;
-        callback,
+        callback = CombinedCallback(callbacks...),
     )
 
     
@@ -218,11 +212,18 @@ Saves the run data after every iteration (by overwriting the data stored in the 
 end
 
 function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maximizer, term_cond, options)
-    metric_cb = options.callback.callback.callbacks[1]
-    @assert metric_cb isa MetricCallback
-
     mkpath(cb.dir)
 
+    # problem & data
+    save(cb.filepath * "_problem.jld2", Dict(
+        "problem" => problem,
+    ))
+    save(cb.filepath * "_data.jld2", Dict(
+        "run_idx" => cb.run_idx,
+        "data" => (problem.problem.data.X, problem.problem.data.Y),
+    ))
+
+    # other
     save(cb.filepath * "_extras.jld2", Dict(
         "run_idx" => cb.run_idx,
         "problem" => problem,
@@ -230,13 +231,18 @@ function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maxi
         "acq_maximizer" => acq_maximizer,
         "term_cond" => term_cond,
         "options" => options,
-        "metric" => metric_cb,
     ))
-    save(cb.filepath * ".jld2", Dict(
-        "run_idx" => cb.run_idx,
-        "data" => (problem.problem.data.X, problem.problem.data.Y),
-        "score" => metric_cb.score_history,
-    ))
+
+    # metric
+    if !isempty(options.callback.callback.callbacks)
+        metric_cb = options.callback.callback.callbacks[1]
+        if metric_cb isa MetricCallback
+            save(cb.filepath * "_metric.jld2", Dict(
+                "score" => metric_cb.score_history,
+                "metric" => metric_cb,
+            ))
+        end
+    end
 
     if first
         iters = [problem]

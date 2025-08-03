@@ -3,7 +3,8 @@
 include("../src/main.jl")
 
 function queue_jobs(problem::AbstractProblem)
-    run_name = "loglike" # the name used for storing data from this run
+    # TODO change run name !!!
+    run_name = "standard" # the name used for storing data from this run
     problem_name = string(typeof(problem))
 
     start_files = Glob.glob(data_dir(problem) * "/start_*.jld2")

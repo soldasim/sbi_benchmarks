@@ -176,7 +176,9 @@ version = "0.4.7"
 
 [[deps.BOLFI]]
 deps = ["BOSS", "DifferentiationInterface", "Distributed", "Distributions", "ForwardDiff", "KernelFunctions", "LazyArrays", "LinearAlgebra", "Optimization", "ProgressMeter", "Random", "SpecialFunctions", "Statistics", "StatsFuns"]
-path = "/Users/soldasim/Documents/julia-pkg/BOLFI.jl/"
+git-tree-sha1 = "438bfc212537a99696632ed8a4aba48e253d8fc3"
+repo-rev = "dev"
+repo-url = "https://github.com/soldasim/BOLFI.jl"
 uuid = "631834c2-07fe-4b6b-876a-15b6a4e37445"
 version = "0.3.1"
 
@@ -189,8 +191,8 @@ version = "0.3.1"
     Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 
 [[deps.BOSS]]
-deps = ["AbstractGPs", "Bijectors", "Distributed", "Distributions", "InteractiveUtils", "InverseFunctions", "LatinHypercubeSampling", "LinearAlgebra", "Optimization", "Random", "SpecialFunctions"]
-git-tree-sha1 = "61a06a189d1139af3f7f20dc9bbad21a9d7f4d4f"
+deps = ["AbstractGPs", "Bijectors", "Distributed", "Distributions", "InteractiveUtils", "InverseFunctions", "LatinHypercubeSampling", "LinearAlgebra", "Optimization", "Random"]
+git-tree-sha1 = "373e8a336e96a3d5c38b35d64c5970d82835826f"
 repo-rev = "dev"
 repo-url = "https://github.com/soldasim/BOSS.jl"
 uuid = "15052f3f-a82a-4ca3-bbc4-f478a3bd1ae2"
@@ -563,9 +565,9 @@ version = "5.55.0"
 
 [[deps.DiffEqBase]]
 deps = ["ArrayInterface", "ConcreteStructs", "DataStructures", "DocStringExtensions", "EnumX", "EnzymeCore", "FastBroadcast", "FastClosures", "FastPower", "FunctionWrappers", "FunctionWrappersWrappers", "LinearAlgebra", "Logging", "Markdown", "MuladdMacro", "Parameters", "PrecompileTools", "Printf", "RecursiveArrayTools", "Reexport", "SciMLBase", "SciMLOperators", "SciMLStructures", "Setfield", "Static", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "TruncatedStacktraces"]
-git-tree-sha1 = "6f8f25122389ba34e491bdfe143ae16fda37cad3"
+git-tree-sha1 = "9782d43bd23a405f7ab06e2cbb4cec267b37d12f"
 uuid = "2b5f629d-d688-5b77-993f-72d75c75574e"
-version = "6.180.0"
+version = "6.181.0"
 
     [deps.DiffEqBase.extensions]
     DiffEqBaseCUDAExt = "CUDA"
@@ -639,9 +641,9 @@ version = "7.16.1"
 
 [[deps.DifferentiationInterface]]
 deps = ["ADTypes", "LinearAlgebra"]
-git-tree-sha1 = "f620da805b82bec64ab4d5f881c7592c82dbc08a"
+git-tree-sha1 = "54d7b8c74408048aea9c055ac8573b2b5c5ec11f"
 uuid = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
-version = "0.7.3"
+version = "0.7.4"
 
     [deps.DifferentiationInterface.extensions]
     DifferentiationInterfaceChainRulesCoreExt = "ChainRulesCore"
@@ -1815,9 +1817,9 @@ version = "1.13.2"
 
 [[deps.Optimization]]
 deps = ["ADTypes", "ArrayInterface", "ConsoleProgressMonitor", "DocStringExtensions", "LBFGSB", "LinearAlgebra", "Logging", "LoggingExtras", "OptimizationBase", "Printf", "ProgressLogging", "Reexport", "SciMLBase", "SparseArrays", "TerminalLoggers"]
-git-tree-sha1 = "c385fdca85f0d6f2f6ade194b4236eaad621e77d"
+git-tree-sha1 = "41902230755effe29a8599ea4b61dc3ffc2c952d"
 uuid = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
-version = "4.4.0"
+version = "4.5.0"
 
 [[deps.OptimizationBase]]
 deps = ["ADTypes", "ArrayInterface", "DifferentiationInterface", "DocStringExtensions", "FastClosures", "LinearAlgebra", "PDMats", "Reexport", "Requires", "SciMLBase", "SparseArrays", "SparseConnectivityTracer", "SparseMatrixColorings"]

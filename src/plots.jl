@@ -5,15 +5,15 @@ using ProgressMeter
 function plot_results(problem::AbstractProblem; save_plot=false)
     ### setings
     dir = data_dir(problem)
-    plotted_groups = ["TEST"] # TODO
+    plotted_groups = ["standard"] # TODO
     ###
 
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
 
     # TODO
-    load_stored_scores!(scores_by_group, files, problem)
-    # recalculate_scores!(scores_by_group, files, problem)
+    # load_stored_scores!(scores_by_group, files, problem)
+    recalculate_scores!(scores_by_group, files, problem)
 
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", yscale=log)
@@ -88,7 +88,7 @@ function recalculate_scores!(scores_by_group, files, problem)
             # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
             #     algorithm = NEWUOA(),
             #     multistart = 24,
-            #     parallel,
+            #     parallel = parallel(),
             #     static_schedule = true, # issues with PRIMA.jl
             #     rhoend = 1e-2,
             # ),
@@ -96,7 +96,7 @@ function recalculate_scores!(scores_by_group, files, problem)
             gauss_mix_options = GaussMixOptions(;       # use Gaussian mixture for the 0th iteration
                 algorithm = BOBYQA(),
                 multistart = 24,
-                parallel,
+                parallel = parallel(),
                 static_schedule = true, # issues with PRIMA.jl
                 cluster_ϵs = nothing,
                 rel_min_weight = 1e-8,
@@ -132,17 +132,17 @@ end
 
 function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::BolfiProblem, sampler::DistributionSampler)
     # TODO
-    sample_count = 1000
+    sample_count = 2 * 10^x_dim(problem)
 
     ref = reference(problem)
     if ref isa Function
-        true_samples = pure_sample_posterior(sampler, ref, p.problem.domain, sample_count)
+        true_samples = BOLFI.pure_sample_posterior(sampler, ref, p.problem.domain, sample_count)
     else
         true_samples = ref
     end
 
     est_logpost = log_posterior_estimate()(p)
-    approx_samples = pure_sample_posterior(sampler, est_logpost, p.problem.domain, sample_count)
+    approx_samples = BOLFI.pure_sample_posterior(sampler, est_logpost, p.problem.domain, sample_count)
 
     score = calculate_metric(metric, true_samples, approx_samples)
     return score
