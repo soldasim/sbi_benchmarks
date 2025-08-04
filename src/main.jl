@@ -67,6 +67,16 @@ function main(; run_name="_test", save_data=false, metric=false, plots=false, da
     #     y_kernel = BOSS.GaussianKernel(),
     #     p_kernel = BOSS.GaussianKernel(),
     # )
+    # acquisition = EIV(
+    #     y_samples = 20,
+    #     x_samples = 2 * 10^x_dim(problem),
+    #     x_proposal = x_prior(problem),
+    # )
+    # acquisition = IMIQR(;
+    #     p_u = 0.75,
+    #     x_samples = 2 * 10^x_dim(problem),
+    #     x_proposal = x_prior(problem),
+    # )
 
     
     ### INIT DATA ###

@@ -176,7 +176,7 @@ version = "0.4.7"
 
 [[deps.BOLFI]]
 deps = ["BOSS", "DifferentiationInterface", "Distributed", "Distributions", "ForwardDiff", "KernelFunctions", "LazyArrays", "LinearAlgebra", "Optimization", "ProgressMeter", "Random", "SpecialFunctions", "Statistics", "StatsFuns"]
-git-tree-sha1 = "438bfc212537a99696632ed8a4aba48e253d8fc3"
+git-tree-sha1 = "dd2b717089bc56e9cc73cd33ca3323425281dc9a"
 repo-rev = "dev"
 repo-url = "https://github.com/soldasim/BOLFI.jl"
 uuid = "631834c2-07fe-4b6b-876a-15b6a4e37445"

@@ -2,21 +2,21 @@ include("main.jl")
 
 using ProgressMeter
 
-function plot_results(problem::AbstractProblem; save_plot=false)
+function plot_results(problem::AbstractProblem; save_plot=false, xscale=identity, yscale=log)
     ### setings
     dir = data_dir(problem)
-    plotted_groups = ["standard"] # TODO
+    plotted_groups = ["eiv", "eiig"] # TODO
     ###
 
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
 
     # TODO
-    # load_stored_scores!(scores_by_group, files, problem)
-    recalculate_scores!(scores_by_group, files, problem)
+    load_stored_scores!(scores_by_group, files, problem)
+    # recalculate_scores!(scores_by_group, files, problem)
 
     fig = Figure()
-    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", yscale=log)
+    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", xscale, yscale)
 
     colors = Makie.wong_colors()  # or use any preferred color palette
     group_names = collect(keys(scores_by_group))
@@ -32,7 +32,13 @@ function plot_results(problem::AbstractProblem; save_plot=false)
         allequal(length.(scores)) || @warn "Scores for group $group have different lengths, padding with `missing`."
         padded = [vcat(s, fill(missing, maxlen - length(s))) for s in scores]
         arr = reduce(hcat, padded)
-        xs = 0:maxlen-1
+        xs = 0:maxlen-1 |> collect
+
+        # avoid zero if xscale if logarithmic
+        if isinf(xscale(0)) && (xs[1] == 0)
+            xs = xs[2:end]
+            arr = arr[2:end, :]
+        end
 
         # Compute statistics ignoring NaNs
         median_scores = mapslices(median∘skipmissing, arr; dims=2)[:]
@@ -60,9 +66,8 @@ function load_stored_scores!(scores_by_group, files, problem)
         fname = split(basename(file), ".")[1]
         group = split(fname, "_")[1]
         
-        startswith(fname, "start") && continue  # skip start files
-        endswith(fname, "extras") && continue   # skip extras files
-        endswith(fname, "iters") && continue    # skip iters files
+        # startswith(fname, "start") && continue  # skip start files
+        endswith(fname, "metric") || continue     # only consider the metric files
 
         data = load(file)
         @assert haskey(data, "score")
