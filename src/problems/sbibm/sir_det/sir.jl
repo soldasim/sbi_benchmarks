@@ -33,31 +33,52 @@ using PythonCall
 
 ### API
 
-function simulator(::SIRProblem)
-    function sir(x)
-        x_ = collect(x)
-        y_ = py"sir_simulator"(x_)
-        y = pyconvert(Matrix{Float64}, y_)[1,:]
-        return y
-    end
+function _sir(x)
+    x_ = collect(x)
+    y_ = py"sir_simulator"(x_)
+    y = pyconvert(Matrix{Float64}, y_)[1,:]
+    return y
 end
+
+# TODO loglike
+function simulator(::SIRProblem)
+    return _sir
+end
+# function simulator(::SIRProblem)
+#     function _sir_loglike(x)
+#         y = _sir(x)
+
+#         y .= clamp.(y, 0., 1.)
+#         # ll = sum(logpdf.(Binomial.(trials, z), z_obs))
+#         ll = mapreduce((t, p, y) -> logpdf(Binomial(t, p), y), +, trials, y, z_obs)
+#         return [ll]
+#     end
+# end
 
 function domain(::SIRProblem)
     return Domain(; bounds)
 end
 
+# TODO loglike
 function likelihood(::SIRProblem)
     return BinomialLikelihood(;
         z_obs = Int64.(z_obs),
-        trials = fill(1000, 10),
+        trials,
         int_grid_size = 200,
     )
 end
+# function likelihood(::SIRProblem)
+#     return ExpLikelihood()
+# end
 
+# TODO loglike
 function prior_mean(p::SIRProblem)
     ps = z_obs ./ likelihood(p).trials
     return ps
 end
+# function prior_mean(p::SIRProblem)
+#     return [0.]
+# end
 
 function x_prior(::SIRProblem)
     return product_distribution([
@@ -66,13 +87,21 @@ function x_prior(::SIRProblem)
     ])
 end
 
+# TODO loglike
 function y_extrema(::SIRProblem)
     return fill(0., y_dim), fill(1., y_dim)
 end
+# function y_extrema(::SIRProblem)
+#     return fill(0., y_dim), fill(1000., y_dim) # TODO ???
+# end
 
+# TODO loglike
 function noise_std_priors(::SIRProblem)
     return fill(Dirac(0.), y_dim)
 end
+# function noise_std_priors(::SIRProblem)
+#     return fill(Dirac(1.), y_dim)
+# end
 
 function reference_samples(::SIRProblem)
     return ref_samples
@@ -111,5 +140,7 @@ const z_obs = pyconvert(Matrix{Float64}, py"sir_observation")[1,:]
 const y_dim = length(z_obs)
 const bounds = _get_bounds()
 const ref_samples = pyconvert(Matrix{Float64}, py"sir_reference_samples")' |> collect
+
+const trials = fill(1000, 10)
 
 end # end module SIRModule
