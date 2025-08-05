@@ -38,23 +38,23 @@ domain(::SimpleProblem) = Domain(;
 likelihood(::SimpleProblem) = get_likelihood()
 
 # TODO loglike
-# prior_mean(::SimpleProblem) = [0., 0.]
-prior_mean(::SimpleProblem) = [0.]
+prior_mean(::SimpleProblem) = [0., 0.]
+# prior_mean(::SimpleProblem) = [0.]
 
 x_prior(::SimpleProblem) = get_x_prior()
 
 # TODO loglike
-# y_extrema(::SimpleProblem) = (fill(0.1, 2), fill(20., 2))
-y_extrema(::SimpleProblem) = ([1.], [1000.])
+y_extrema(::SimpleProblem) = (fill(0.1, 2), fill(20., 2))
+# y_extrema(::SimpleProblem) = ([1.], [1000.])
 
 # noise_std_priors(::SimpleProblem) = get_noise_std_priors()
 # TODO loglike
-# noise_std_priors(::SimpleProblem) = fill(Dirac(0.), 2)
-noise_std_priors(::SimpleProblem) = [Dirac(1.)]
+noise_std_priors(::SimpleProblem) = fill(Dirac(0.), 2)
+# noise_std_priors(::SimpleProblem) = [Dirac(1.)]
 
 # TODO loglike
-# true_f(::SimpleProblem) = x -> x
-true_f(::SimpleProblem) = x -> [f_(x)]
+true_f(::SimpleProblem) = x -> x
+# true_f(::SimpleProblem) = x -> [f_(x)]
 
 
 # - - - PARAMETER DOMAIN - - - - -
@@ -70,7 +70,9 @@ const z_obs = [0.]
 const y_dim = 1
 
 """simulation noise std"""
-const ω = fill(1., y_dim)
+# TODO
+# const ω = fill(1., y_dim)
+const ω = fill(0., y_dim) # to be fair to loglike modeling vs output modeling
 
 
 # - - - EXPERIMENT - - - - -
@@ -81,24 +83,24 @@ const inv_S = inv(Σ)
 f_(x) = -(1/2) * x' * inv_S * x
 
 # TODO loglike
-# function simulation(x; noise_std=ω)
-#     y = x
-#     return y
-# end
 function simulation(x; noise_std=ω)
-    y1 = f_(x) + rand(Normal(0., noise_std[1]))
-    return [y1]
+    y = x
+    return y
 end
+# function simulation(x; noise_std=ω)
+#     y1 = f_(x) + rand(Normal(0., noise_std[1]))
+#     return [y1]
+# end
 
 # The objective for the GP.
 obj(x) = simulation(x)
 
 # TODO loglike
-# get_likelihood() = MvNormalLikelihood(;
-#     z_obs = [0., 0.],
-#     Σ_obs = Σ,
-# )
-get_likelihood() = ExpLikelihood()
+get_likelihood() = MvNormalLikelihood(;
+    z_obs = [0., 0.],
+    Σ_obs = Σ,
+)
+# get_likelihood() = ExpLikelihood()
 
 # truncate the prior to the bounds
 function get_x_prior()
