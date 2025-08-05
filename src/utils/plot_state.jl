@@ -26,6 +26,7 @@ end
 
 function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::DistributionSampler, sample_count::Int, iter::Int; save_plots=false)
     est_logpost = log_posterior_estimate()(bolfi)
+    est_post = x -> exp(est_logpost(x))
 
     domain = bolfi.problem.domain
     lb, ub = domain.bounds
@@ -33,10 +34,11 @@ function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::Distributi
 
     x = range(lb[1], ub[1], length=100)
     y = range(lb[2], ub[2], length=100)
-    Z = [est_logpost([xi, yi]) for xi in x, yi in y]
+    Z = [est_post([xi, yi]) for xi in x, yi in y]
 
     fig = Figure()
-    ax = Axis(fig[1, 1], xlabel="x₁", ylabel="x₂", title=string(log_posterior_estimate()))
+    title = string(log_posterior_estimate()) |> exp_title
+    ax = Axis(fig[1, 1], xlabel="x₁", ylabel="x₂"; title)
     contourf!(ax, x, y, Z)
 
     ### sample posterior
@@ -65,6 +67,12 @@ function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::Distributi
     else
         display(fig)
     end
+end
+
+function exp_title(est_logpost_name::String)
+    @assert startswith(est_logpost_name, "log_")
+    est_post_name = est_logpost_name[5:end]
+    return est_post_name
 end
 
 end # module PlotModule
