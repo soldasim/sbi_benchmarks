@@ -10,8 +10,8 @@ Each subtype of `AbstractProblem` *should* implement:
 - `likelihood(::AbstractProblem) -> ::Likelihood`
 - `prior_mean(::AbstractProblem) -> ::AbstractVector{<:Real}`
 - `x_prior(::AbstractProblem) -> ::MultivariateDistribution`
-- `y_extrema(::AbstractProblem) -> ::Tuple{<:AbstractVector{<:Real}, <:AbstractVector{<:Real}}`
-- `noise_std_priors(::AbstractProblem) -> ::AbstractVector{<:UnivariateDistribution}`
+- `est_amplitude(::AbstractProblem) -> ::AbstractVector{<:Real}`
+- `est_noise_std(::AbstractProblem) -> ::AbstractVector{<:Real} or ::Nothing`
 
 Each subtype of `AbstractProblem` *should* implement *at least one* of:
 - `true_f(::AbstractProblem) -> ::Union{Nothing, Function}`: Defaults to `nothing`.
@@ -71,21 +71,24 @@ Return the prior parameter distribution of the given problem.
 function x_prior end
 
 """
-    y_extrema(::AbstractProblem) -> ::Tuple{<:AbstractVector{<:Real}, <:AbstractVector{<:Real}}
+    est_amplitude(::AbstractProblem) -> ::AbstractVector{<:Real}
 
-Return the (estimated) extrema of the outputs of the simulator of the given problem.
+Return the (estimated) amplitude.
 
-The extrema should be underconfindent to simulate the uncertainty of the user when estimating
-them before running the simulator.
+The amplitude prior is initialized to support values similar to the estimated amplitude.
 """
-function y_extrema end
+function est_amplitude end
 
 """
-    noise_std_priors(::AbstractProblem) -> ::AbstractVector{<:UnivariateDistribution}
+    est_noise_std(::AbstractProblem) -> ::AbstractVector{<:Real} or ::Nothing
 
-Return the priors for the noise standard deviations of the outputs of the simulator of the given problem.
+Return the (estimated) noise standard deviation.
+
+The noise std prior is initialized to support values similar to the estimated noise standard deviation.
+
+Return `nothing` if the problem is noise-less (and we assume to have this knowledge).
 """
-function noise_std_priors end
+function est_noise_std end
 
 """
     true_f(::AbstractProblem) -> ::Union{Nothing, Function}
@@ -174,4 +177,4 @@ function true_logpost(problem::AbstractProblem)
 end
 
 x_dim(problem::AbstractProblem) = length(domain(problem).bounds[1])
-y_dim(problem::AbstractProblem) = length(y_extrema(problem)[1])
+y_dim(problem::AbstractProblem) = length(est_amplitude(problem))

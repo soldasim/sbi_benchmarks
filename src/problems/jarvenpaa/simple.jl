@@ -17,8 +17,8 @@ import ..y_max
 import ..likelihood
 import ..prior_mean
 import ..x_prior
-import ..y_extrema
-import ..noise_std_priors
+import ..est_amplitude
+import ..est_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -44,13 +44,11 @@ prior_mean(::SimpleProblem) = [0., 0.]
 x_prior(::SimpleProblem) = get_x_prior()
 
 # TODO loglike
-y_extrema(::SimpleProblem) = (fill(0.1, 2), fill(20., 2))
-# y_extrema(::SimpleProblem) = ([1.], [1000.])
+est_amplitude(::SimpleProblem) = fill(20., 2)
+# est_amplitude(::SimpleProblem) = [1000.] # TODO ???
 
-# noise_std_priors(::SimpleProblem) = get_noise_std_priors()
-# TODO loglike
-noise_std_priors(::SimpleProblem) = fill(Dirac(0.), 2)
-# noise_std_priors(::SimpleProblem) = [Dirac(1.)]
+# TODO noise
+est_noise_std(::SimpleProblem) = nothing
 
 # TODO loglike
 true_f(::SimpleProblem) = x -> x
@@ -70,9 +68,10 @@ const z_obs = [0.]
 const y_dim = 1
 
 """simulation noise std"""
-# TODO
+# TODO noise
+# (not using noise in order to compare with loglike modeling more fairly)
+const ω = fill(0., y_dim)
 # const ω = fill(1., y_dim)
-const ω = fill(0., y_dim) # to be fair to loglike modeling vs output modeling
 
 
 # - - - EXPERIMENT - - - - -

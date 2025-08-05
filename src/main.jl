@@ -4,6 +4,7 @@ using Distributions
 using KernelFunctions
 using LinearAlgebra
 using OptimizationPRIMA
+using Bijectors
 
 using JLD2
 using Glob
@@ -21,6 +22,7 @@ parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 include("include_code.jl")
 include("data_paths.jl")
 include("generate_starts.jl")
+include("param_priors.jl")
 
 ### PROBLEM ###
 get_problem() = ABProblem()
@@ -36,26 +38,18 @@ function main(; data=nothing, kwargs...)
 
     
     ### SURROGATE MODEL ###
-    x_dim_ = x_dim(problem)
-    y_dim_ = y_dim(problem)
-    bounds = domain(problem).bounds
-    d = (bounds[2] .- bounds[1])
-
-    # # TODO SimpleProblem custom model
-    # model = SimpleProblemModule.get_model()
-
     model = GaussianProcess(;
         mean = prior_mean(problem),
         kernel = BOSS.Matern32Kernel(),
-        lengthscale_priors = fill(product_distribution(calc_inverse_gamma.(d ./ 20, d)), y_dim_),
-        amplitude_priors = calc_inverse_gamma.(y_extrema(problem)...),
-        noise_std_priors = noise_std_priors(problem),
+        lengthscale_priors = get_lengthscale_priors(problem),
+        amplitude_priors = get_amplitude_priors(problem),
+        noise_std_priors = get_noise_std_priors(problem),
     )
     # model = NonstationaryGP(;
     #     mean = prior_mean(problem),
-    #     lengthscale_model = BOSS.default_lengthscale_model(bounds, y_dim_),
-    #     amplitude_model = calc_inverse_gamma.(y_extrema(problem)...),
-    #     noise_std_model = noise_std_priors(problem),
+    #     lengthscale_model = BOSS.default_lengthscale_model(bounds(problem), y_dim(problem)),
+    #     amplitude_model = get_amplitude_priors(problem),
+    #     noise_std_model = get_noise_std_priors(problem),
     # )
     
     

@@ -19,8 +19,8 @@ import ..y_max
 import ..likelihood
 import ..prior_mean
 import ..x_prior
-import ..y_extrema
-import ..noise_std_priors
+import ..est_amplitude
+import ..est_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -32,6 +32,9 @@ using PythonCall
 
 
 ### API
+
+# TODO noise
+# (not using noise in order to compare with loglike modeling more fairly)
 
 function _sir(x)
     x_ = collect(x)
@@ -88,20 +91,11 @@ function x_prior(::SIRProblem)
 end
 
 # TODO loglike
-function y_extrema(::SIRProblem)
-    return fill(0., y_dim), fill(1., y_dim)
-end
-# function y_extrema(::SIRProblem)
-#     return fill(0., y_dim), fill(1000., y_dim) # TODO ???
-# end
+est_amplitude(::SIRProblem) = fill(1., y_dim)
+# est_amplitude(::SIRProblem) = fill(1000., y_dim) # TODO ???
 
-# TODO loglike
-function noise_std_priors(::SIRProblem)
-    return fill(Dirac(0.), y_dim)
-end
-# function noise_std_priors(::SIRProblem)
-#     return fill(Dirac(1.), y_dim)
-# end
+# TODO noise
+est_noise_std(::SIRProblem) = nothing
 
 function reference_samples(::SIRProblem)
     return ref_samples

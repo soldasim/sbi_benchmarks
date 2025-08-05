@@ -22,8 +22,8 @@ import ..y_max
 import ..likelihood
 import ..prior_mean
 import ..x_prior
-import ..y_extrema
-import ..noise_std_priors
+import ..est_amplitude
+import ..est_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -51,12 +51,11 @@ prior_mean(::ABProblem) = z_obs
 x_prior(::ABProblem) = _get_trunc_x_prior()
 
 # TODO loglike
-y_extrema(::ABProblem) = ([0.1], [20.])
-# y_extrema(::ABProblem) = ([0.], [1000.]) # TODO ???
+est_amplitude(::ABProblem) = [20.]
+# est_amplitude(::ABProblem) = [1000.] # TODO ???
 
-# TODO loglike
-noise_std_priors(::ABProblem) = [Dirac(0.)]
-# noise_std_priors(::ABProblem) = [Dirac(1.)]
+# TODO noise
+est_noise_std(::ABProblem) = nothing
 
 true_f(::ABProblem) = x -> ab_simulation(x; noise_std=zero(std_sim))
 
@@ -65,7 +64,11 @@ true_f(::ABProblem) = x -> ab_simulation(x; noise_std=zero(std_sim))
 
 const z_obs = [1.]
 const std_obs = [0.2]
+
+# TODO noise
+# (not using noise in order to compare with loglike modeling more fairly)
 const std_sim = [0.]
+# const std_sim = [0.1]
 
 # the true blackbox function
 f_(x) = [x[1] * x[2]]
