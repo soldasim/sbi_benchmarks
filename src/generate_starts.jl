@@ -9,7 +9,10 @@ function generate_starts(problem::AbstractProblem, n_runs::Int)
         file = dir * "/start_$run_idx.jld2"
 
         data = get_init_data(problem, init_data_count)
-        @save file data=data
+        
+        # only save the X matrix
+        X = data.X
+        @save file X=X
     end
 
     nothing

@@ -22,13 +22,15 @@ include("include_code.jl")
 include("data_paths.jl")
 include("generate_starts.jl")
 
-function main(; run_name="_test", save_data=false, metric=false, plots=false, data=nothing, run_idx=nothing)
-    ### PROBLEM ###
-    problem = ABProblem()
-    # problem = SimpleProblem()
-    # problem = SIRProblem()
+### PROBLEM ###
+get_problem() = ABProblem()
+# get_problem() = SimpleProblem()
+# get_problem() = SIRProblem()
 
+function main(; data=nothing, kwargs...)
+    problem = get_problem()
     
+
     ### SETTINGS ###
     init_data_count = 3
 
@@ -80,7 +82,16 @@ function main(; run_name="_test", save_data=false, metric=false, plots=false, da
 
     
     ### INIT DATA ###
-    data = isnothing(data) ? get_init_data(problem, init_data_count) : data
+    if isnothing(data)
+        data = get_init_data(problem, init_data_count)
+    else
+        @assert data isa AbstractMatrix{<:Real}
+        sim = simulator(problem)
+        X = data
+        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
+        data = BOSS.ExperimentData(X, Y)
+    end
+
     @info "Initial data:"
     for (x, y) in zip(eachcol(data.X), eachcol(data.Y))
         println("  $x -> $y")
@@ -95,7 +106,15 @@ function main(; run_name="_test", save_data=false, metric=false, plots=false, da
         model,
     )
 
-    
+    return main(bolfi; kwargs...)
+end
+
+# for continuing an experiment (mainly for debugging)
+function main(bolfi::BolfiProblem; run_name="_test", save_data=false, metric=false, plots=false, run_idx=nothing)
+    problem = get_problem()
+    bounds = bolfi.problem.domain.bounds
+
+
     ### ALGORITHMS ###
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
