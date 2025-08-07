@@ -37,7 +37,7 @@ function main(; data=nothing, kwargs...)
     ### SURROGATE MODEL ###
     model = GaussianProcess(;
         mean = prior_mean(problem),
-        kernel = BOSS.Matern32Kernel(),
+        kernel = BOSS.Matern52Kernel(),
         lengthscale_priors = get_lengthscale_priors(problem),
         amplitude_priors = get_amplitude_priors(problem),
         noise_std_priors = get_noise_std_priors(problem),
