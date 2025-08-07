@@ -163,8 +163,13 @@ function main(bolfi::BolfiProblem; run_name="_test", save_data=false, metric=fal
         logpost_estimator = log_posterior_estimate(),
         sampler,
         sample_count = 2 * 10^x_dim(problem),
-        metric = MMDMetric(;
-            kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
+        # metric = MMDMetric(;
+        #     kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
+        # ),
+        metric = OptMMDMetric(;
+            kernel = GaussianKernel(),
+            bounds,
+            algorithm = BOBYQA(),
         ),
     )
     # first callback in `callbacks` (this is important for `SaveCallback`)
