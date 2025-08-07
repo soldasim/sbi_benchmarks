@@ -20,9 +20,6 @@ log_posterior_estimate() = log_posterior_mean
 parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
 include("include_code.jl")
-include("data_paths.jl")
-include("generate_starts.jl")
-include("param_priors.jl")
 
 ### PROBLEM ###
 get_problem() = ABProblem()
