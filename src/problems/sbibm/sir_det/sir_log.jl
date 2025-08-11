@@ -1,20 +1,18 @@
 
 """
-    SIRProblem()
+    LogSIRProblem()
 
 "Determinized" SIR problem from the SBIBM benchmark.
 
-The simulator noise is removed and the probability `p` (parameter of the binomila likelihood)
-is returned from the simulator directly.
-
-See also the `LogSIRProblem` for a version of the problem,
-where only the log-likelihood is returned by the simulator.
+Only the log-likelihood is returned by the simulator.
+See also the `SIRProblem` for a version of the problem,
+where the simulator returns the probability `p` directly.
 """
-struct SIRProblem <: AbstractProblem end
+struct LogSIRProblem <: AbstractProblem end
 
 module SIRModule
 
-import ..SIRProblem
+import ..LogSIRProblem
 
 import ..simulator
 import ..domain
@@ -46,40 +44,61 @@ function _sir(x)
     return y
 end
 
-function simulator(::SIRProblem)
-    return _sir
+# TODO loglike
+# function simulator(::LogSIRProblem)
+#     return _sir
+# end
+function simulator(::LogSIRProblem)
+    function _sir_loglike(x)
+        y = _sir(x)
+
+        y .= clamp.(y, 0., 1.)
+        # ll = sum(logpdf.(Binomial.(trials, z), z_obs))
+        ll = mapreduce((t, p, y) -> logpdf(Binomial(t, p), y), +, trials, y, z_obs)
+        return [ll]
+    end
 end
 
-function domain(::SIRProblem)
+function domain(::LogSIRProblem)
     return Domain(; bounds)
 end
 
-function likelihood(::SIRProblem)
-    return BinomialLikelihood(;
-        z_obs = Int64.(z_obs),
-        trials,
-        int_grid_size = 200,
-    )
+# TODO loglike
+# function likelihood(::LogSIRProblem)
+#     return BinomialLikelihood(;
+#         z_obs = Int64.(z_obs),
+#         trials,
+#         int_grid_size = 200,
+#     )
+# end
+function likelihood(::LogSIRProblem)
+    return ExpLikelihood()
 end
 
-function prior_mean(p::SIRProblem)
-    ps = z_obs ./ likelihood(p).trials
-    return ps
+# TODO loglike
+# function prior_mean(p::LogSIRProblem)
+#     ps = z_obs ./ likelihood(p).trials
+#     return ps
+# end
+function prior_mean(p::LogSIRProblem)
+    return [0.]
 end
 
-function x_prior(::SIRProblem)
+function x_prior(::LogSIRProblem)
     return product_distribution([
         truncated(LogNormal(-0.9163, 0.5); lower=bounds[1][1], upper=bounds[2][1]),
         truncated(LogNormal(-2.0794, 0.2); lower=bounds[1][2], upper=bounds[2][2]),
     ])
 end
 
-est_amplitude(::SIRProblem) = fill(1., y_dim)
+# TODO loglike
+# est_amplitude(::LogSIRProblem) = fill(1., y_dim)
+est_amplitude(::LogSIRProblem) = fill(1000., y_dim) # TODO ???
 
 # TODO noise
-est_noise_std(::SIRProblem) = nothing
+est_noise_std(::LogSIRProblem) = nothing
 
-function reference_samples(::SIRProblem)
+function reference_samples(::LogSIRProblem)
     return ref_samples
 end
 

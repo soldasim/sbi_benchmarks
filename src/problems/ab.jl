@@ -6,6 +6,8 @@ The analytical toy problem of inferring the parameters `a`, `b`
 given the observation `z_obs = [1.]`.
 
 The blackbox simulator realizes the function `y = a * b`.
+See also the `LogABProblem` for a version of the problem,
+where only the log-likelihood is returned by the simulator.
 
 The likelihood is Gaussian.
 """
@@ -40,19 +42,13 @@ domain(::ABProblem) = Domain(;
     bounds = _get_bounds(),
 )
 
-# TODO loglike
 likelihood(::ABProblem) = NormalLikelihood(; z_obs, std_obs)
-# likelihood(::ABProblem) = ExpLikelihood()
 
-# TODO loglike
 prior_mean(::ABProblem) = z_obs
-# prior_mean(::ABProblem) = [0.]
 
 x_prior(::ABProblem) = _get_trunc_x_prior()
 
-# TODO loglike
 est_amplitude(::ABProblem) = [20.]
-# est_amplitude(::ABProblem) = [1000.] # TODO ???
 
 # TODO noise
 est_noise_std(::ABProblem) = nothing
@@ -73,18 +69,11 @@ const std_sim = [0.]
 # the true blackbox function
 f_(x) = [x[1] * x[2]]
 
-# TODO loglike
 function ab_simulation(x; noise_std=std_sim)
     y = f_(x)
     y .+= rand(Normal(0., noise_std[1]))
     return y
 end
-# function ab_simulation(x; noise_std=std_sim)
-#     y = f_(x)
-#     ll = logpdf(Normal(y[1], std_obs[1]), z_obs[1])
-#     ll += rand(Normal(0., noise_std[1]))
-#     return [ll]
-# end
 
 _get_bounds() = ([-5., -5.], [5., 5.])
 

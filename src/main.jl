@@ -26,6 +26,10 @@ get_problem() = ABProblem()
 # get_problem() = SimpleProblem()
 # get_problem() = SIRProblem()
 
+# get_problem() = LogABProblem()
+# get_problem() = LogSimpleProblem()
+# get_problem() = LogSIRProblem()
+
 function main(; data=nothing, kwargs...)
     problem = get_problem()
     
