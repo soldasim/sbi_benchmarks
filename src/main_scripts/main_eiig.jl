@@ -1,3 +1,6 @@
+### The setup for using the EIIG acquisition.
+# `EIIG` instead of `MaxVar`
+
 using BOSS
 using BOLFI
 using Distributions
@@ -53,15 +56,15 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     
     
     ### ACQUISITION ###
-    acquisition = MaxVar()
+    # acquisition = MaxVar()
     # acquisition = LogMaxVar()
-    # acquisition = EIIG(;
-    #     y_samples = 20,
-    #     x_samples = 2 * 10^x_dim(problem),
-    #     x_proposal = x_prior(problem),
-    #     y_kernel = BOSS.GaussianKernel(),
-    #     p_kernel = BOSS.GaussianKernel(),
-    # )
+    acquisition = EIIG(;
+        y_samples = 20,
+        x_samples = 2 * 10^x_dim(problem),
+        x_proposal = x_prior(problem),
+        y_kernel = BOSS.GaussianKernel(),
+        p_kernel = BOSS.GaussianKernel(),
+    )
     # acquisition = EIV(
     #     y_samples = 20,
     #     x_samples = 2 * 10^x_dim(problem),

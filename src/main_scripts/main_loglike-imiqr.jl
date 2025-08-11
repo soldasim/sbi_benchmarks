@@ -1,3 +1,7 @@
+### The setup for modeling loglike while using the IMIQR acquisition.
+# `IMIQR` instead of `MaxVar`
+# `log_approx_posterior` instead of `log_posterior_mean`
+
 using BOSS
 using BOLFI
 using Distributions
@@ -14,8 +18,8 @@ using Random
 Random.seed!(555)
 
 # TODO
-log_posterior_estimate() = log_posterior_mean
-# log_posterior_estimate() = log_approx_posterior
+# log_posterior_estimate() = log_posterior_mean
+log_posterior_estimate() = log_approx_posterior
 
 parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
@@ -53,7 +57,7 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     
     
     ### ACQUISITION ###
-    acquisition = MaxVar()
+    # acquisition = MaxVar()
     # acquisition = LogMaxVar()
     # acquisition = EIIG(;
     #     y_samples = 20,
@@ -67,11 +71,11 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     #     x_samples = 2 * 10^x_dim(problem),
     #     x_proposal = x_prior(problem),
     # )
-    # acquisition = IMIQR(;
-    #     p_u = 0.75,
-    #     x_samples = 2 * 10^x_dim(problem),
-    #     x_proposal = x_prior(problem),
-    # )
+    acquisition = IMIQR(;
+        p_u = 0.75,
+        x_samples = 2 * 10^x_dim(problem),
+        x_proposal = x_prior(problem),
+    )
 
     
     ### INIT DATA ###

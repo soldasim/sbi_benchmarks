@@ -1,3 +1,6 @@
+### The setup for using the hierarchical non-stationary GP instead of the standard GP.
+# `NonstationaryGP` instead of `GaussianProcess`
+
 using BOSS
 using BOLFI
 using Distributions
@@ -37,19 +40,19 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
 
     
     ### SURROGATE MODEL ###
-    model = GaussianProcess(;
-        mean = prior_mean(problem),
-        kernel = BOSS.Matern52Kernel(),
-        lengthscale_priors = get_lengthscale_priors(problem),
-        amplitude_priors = get_amplitude_priors(problem),
-        noise_std_priors = get_noise_std_priors(problem),
-    )
-    # model = NonstationaryGP(;
+    # model = GaussianProcess(;
     #     mean = prior_mean(problem),
-    #     lengthscale_model = BOSS.default_lengthscale_model(bounds(problem), y_dim(problem)),
-    #     amplitude_model = get_amplitude_priors(problem),
-    #     noise_std_model = get_noise_std_priors(problem),
+    #     kernel = BOSS.Matern52Kernel(),
+    #     lengthscale_priors = get_lengthscale_priors(problem),
+    #     amplitude_priors = get_amplitude_priors(problem),
+    #     noise_std_priors = get_noise_std_priors(problem),
     # )
+    model = NonstationaryGP(;
+        mean = prior_mean(problem),
+        lengthscale_model = BOSS.default_lengthscale_model(bounds(problem), y_dim(problem)),
+        amplitude_model = get_amplitude_priors(problem),
+        noise_std_model = get_noise_std_priors(problem),
+    )
     
     
     ### ACQUISITION ###

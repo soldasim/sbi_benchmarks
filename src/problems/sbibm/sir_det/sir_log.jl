@@ -10,7 +10,7 @@ where the simulator returns the probability `p` directly.
 """
 struct LogSIRProblem <: AbstractProblem end
 
-module SIRModule
+module LogSIRModule
 
 import ..LogSIRProblem
 

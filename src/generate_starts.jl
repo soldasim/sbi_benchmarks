@@ -2,7 +2,7 @@
 function generate_starts(problem::AbstractProblem, n_runs::Int)
     init_data_count = 3
 
-    dir = data_dir(problem)
+    dir = starts_dir(problem)
     mkpath(dir)
 
     for run_idx in 1:n_runs

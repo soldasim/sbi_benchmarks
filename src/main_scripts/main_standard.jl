@@ -1,3 +1,5 @@
+### The default setup.
+
 using BOSS
 using BOLFI
 using Distributions

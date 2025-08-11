@@ -2,12 +2,10 @@
 
 include("../src/main.jl")
 
-function queue_jobs(problem::AbstractProblem)
-    # TODO change run name !!!
-    run_name = "standard" # the name used for storing data from this run
+function queue_jobs(problem::AbstractProblem, run_name::String)
     problem_name = string(typeof(problem))
 
-    start_files = Glob.glob(data_dir(problem) * "/start_*.jld2")
+    start_files = Glob.glob(starts_dir(problem) * "/start_*.jld2")
     @info "Running $(length(start_files)) runs of the $(typeof(problem)) ..."
     
     for start_file in start_files
@@ -16,9 +14,9 @@ function queue_jobs(problem::AbstractProblem)
         # data = load(start_file, "data")
 
         # main(; run_name, save_data=true, data, run_idx)
-        @info "Queuing run \"$(run_name)\" of problem \"$(problem_name)\" with idx \"$(run_idx)\""
+        @info "Queuing run: problem:\"$(problem_name)\", run_name:\"$(run_name)\", run_idx:\"$(run_idx)\""
         # TODO --mem (the code was failing with the `SimpleProblem` with the default 4G memory)
-        Base.run(`sbatch -p cpulong --mem=16G cluster_scripts/run.sh $run_name $problem_name $run_idx`)
+        Base.run(`sbatch -p cpulong --mem=16G cluster_scripts/run.sh $problem_name $run_name $run_idx`)
     end
 
     nothing
