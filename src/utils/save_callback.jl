@@ -51,8 +51,8 @@ function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maxi
     if first
         iters = [problem]
     else
-        iters = load(cb.filepath * "_iters.jld2")["problems"]
+        iters = load(cb.dir * "/" * cb.filename * "_iters.jld2")["problems"]
         push!(iters, problem)
     end
-    save(cb.filepath * "_iters.jld2", Dict("problems" => iters))
+    save(cb.dir * "/" * cb.filename * "_iters.jld2", Dict("problems" => iters))
 end

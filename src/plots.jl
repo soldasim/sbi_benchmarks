@@ -2,18 +2,16 @@ include("main.jl")
 
 using ProgressMeter
 
-function plot_results(problem::AbstractProblem; save_plot=false, xscale=identity, yscale=log)
+plot_results(problem::AbstractProblem; kwargs...) = plot_results([problem]; kwargs...)
+
+function plot_results(problems::AbstractVector; save_plot=false, xscale=identity, yscale=log)
     ### setings
-    dir = data_dir(problem)
-    plotted_groups = ["eiv", "eiig"] # TODO
+    plotted_groups = ["standard", "loglike", "loglike-imiqr", "eiv", "eiig", "nongp"] # TODO
     ###
 
-    files = sort(Glob.glob(joinpath(dir, "*.jld2")))
-    scores_by_group = Dict{String, Vector{Vector{Float64}}}()
-
     # TODO
-    load_stored_scores!(scores_by_group, files, problem)
-    # recalculate_scores!(scores_by_group, files, problem)
+    scores_by_group = load_stored_scores!(problems)
+    # scores_by_group = recalculate_scores!(problems)
 
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", xscale, yscale)
@@ -57,11 +55,19 @@ function plot_results(problem::AbstractProblem; save_plot=false, xscale=identity
 
     axislegend(ax)
 
-    save_plot && save(plot_dir() * "/" * string(typeof(problem)) * ".png", fig)
+    save_plot && save(plot_dir() * "/" * plot_name(problems) * ".png", fig)
     fig
 end
 
-function load_stored_scores!(scores_by_group, files, problem)
+plot_name(problems::AbstractVector) = join(plot_name.(problems), "_")
+plot_name(problem::AbstractProblem) = string(typeof(problem))
+
+function load_stored_scores!(problems::AbstractVector)
+    dirs = data_dir.(problems)
+    files = sort(vcat(Glob.glob.(joinpath.(dirs, Ref("*.jld2")))...))
+    
+    scores_by_group = Dict{String, Vector{Vector{Float64}}}()
+
     for file in files
         fname = split(basename(file), ".")[1]
         group = split(fname, "_")[1]
@@ -76,14 +82,25 @@ function load_stored_scores!(scores_by_group, files, problem)
         end
         push!(scores_by_group[group], data["score"])
     end
+
+    return scores_by_group
 end
 
-function recalculate_scores!(scores_by_group, files, problem)
-    bounds = domain(problem).bounds
+function recalculate_scores!(problems::AbstractVector)
+    return recalculate_scores!.(problems) |> merge
+end
+function recalculate_scores!(problem::AbstractProblem)
+    dir = data_dir(problem)
+    files = sort(Glob.glob(joinpath(dir, "*.jld2")))
 
     # TODO
-    metric = MMDMetric(;
-        kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
+    # metric = MMDMetric(;
+    #     kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
+    # )
+    metric = OptMMDMetric(;
+        kernel = GaussianKernel(),
+        bounds,
+        algorithm = BOBYQA(),
     )
 
     # TODO

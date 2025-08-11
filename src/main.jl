@@ -46,7 +46,7 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     )
     # model = NonstationaryGP(;
     #     mean = prior_mean(problem),
-    #     lengthscale_model = BOSS.default_lengthscale_model(bounds(problem), y_dim(problem)),
+    #     lengthscale_model = BOSS.default_lengthscale_model(domain(problem).bounds, y_dim(problem)),
     #     amplitude_model = get_amplitude_priors(problem),
     #     noise_std_model = get_noise_std_priors(problem),
     # )
