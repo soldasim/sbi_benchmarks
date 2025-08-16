@@ -52,9 +52,12 @@ function simulator(::LogSIRProblem)
     function _sir_loglike(x)
         y = _sir(x)
 
-        y .= clamp.(y, 0., 1.)
+        # TODO special treatment for loglike modeling
+        # y .= clamp.(y, 0., 1.)
+        y .= clamp.(y, 0. + 1e-8, 1. - 1e-8) # to avoid -Inf loglike
+
         # ll = sum(logpdf.(Binomial.(trials, z), z_obs))
-        ll = mapreduce((t, p, y) -> logpdf(Binomial(t, p), y), +, trials, y, z_obs)
+        ll = mapreduce((t, p, z) -> logpdf(Binomial(t, p), z), +, trials, y, z_obs)
         return [ll]
     end
 end
