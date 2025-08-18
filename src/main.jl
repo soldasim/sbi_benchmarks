@@ -106,7 +106,6 @@ end
 function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", save_data=false, metric=false, plots=false, run_idx=nothing)
     bounds = bolfi.problem.domain.bounds
 
-
     ### ALGORITHMS ###
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
@@ -159,6 +158,9 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
 
     
     ### PERFORMANCE METRIC ###
+    xs = rand(bolfi.x_prior, 2 * 10^x_dim(problem))
+    ws = exp.( (0.) .- logpdf.(Ref(bolfi.x_prior), eachcol(xs)) )
+
     metric_cb = MetricCallback(;
         reference = reference(problem),
         logpost_estimator = log_posterior_estimate(),
@@ -172,6 +174,10 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
             bounds,
             algorithm = BOBYQA(),
         ),
+        # metric = TVMetric(;
+        #     grid = xs,
+        #     ws = ws,
+        # ),
     )
     # first callback in `callbacks` (this is important for `SaveCallback`)
     callbacks = BolfiCallback[]
@@ -183,7 +189,7 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
         problem,
         sampler,
         sample_count = 2 * 10^x_dim(problem),
-        plot_each = 10,
+        plot_each = 1, # TODO
         save_plots = true,
     )
     plots && push!(callbacks, plot_cb)
@@ -206,18 +212,18 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
     return bolfi
 end
 
-function run(problem::AbstractProblem)
-    run_name = "loglike" # the name used for storing data from this run
+# function run(problem::AbstractProblem)
+#     run_name = "loglike" # the name used for storing data from this run
 
-    start_files = Glob.glob(starts_dir(problem) * "/start_*.jld2")
-    @info "Running $(length(start_files)) runs of the $(typeof(problem)) ..."
+#     start_files = Glob.glob(starts_dir(problem) * "/start_*.jld2")
+#     @info "Running $(length(start_files)) runs of the $(typeof(problem)) ..."
     
-    for start_file in start_files
-        m = match(r"start_(\d+)\.jld2$", start_file)
-        run_idx = parse(Int, m.captures[1])
-        data = load(start_file, "data")
-        main(; run_name, save_data=true, data, run_idx)
-    end
+#     for start_file in start_files
+#         m = match(r"start_(\d+)\.jld2$", start_file)
+#         run_idx = parse(Int, m.captures[1])
+#         data = load(start_file, "data")
+#         main(; run_name, save_data=true, data, run_idx)
+#     end
 
-    nothing
-end
+#     nothing
+# end
