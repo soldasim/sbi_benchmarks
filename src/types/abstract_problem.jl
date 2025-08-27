@@ -3,7 +3,6 @@
 Subtypes of `AbstractProblem` represent benchmark problems for SBI.
 
 Each subtype of `AbstractProblem` *should* implement:
-
 - `simulator(::AbstractProblem) -> ::Function`
 - `domain(::AbstractProblem) -> ::Domain`
 - `y_max(::AbstractProblem) -> ::Union{Nothing, AbstractVector{<:Real}}`: Optional, defaults to `nothing`.
