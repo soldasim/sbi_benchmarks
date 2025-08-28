@@ -9,3 +9,7 @@ include("sbibm/sir_det/sir_log.jl")
 # Jarvenpaa & Gutmann
 include("jarvenpaa/simple.jl")
 include("jarvenpaa/simple_log.jl")
+include("jarvenpaa/banana.jl")
+include("jarvenpaa/banana_log.jl")
+include("jarvenpaa/bimodal.jl")
+include("jarvenpaa/bimodal_log.jl")
