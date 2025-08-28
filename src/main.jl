@@ -35,6 +35,28 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     ### SETTINGS ###
     init_data_count = 3
 
+    ### INIT DATA ###
+    if isnothing(data)
+        data = get_init_data(problem, init_data_count)
+    else
+        @assert data isa AbstractMatrix{<:Real}
+        sim = simulator(problem)
+        X = data
+        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
+        data = BOSS.ExperimentData(X, Y)
+    end
+
+    # ### domain mean as only initial point
+    # X = hcat(mean(domain(problem).bounds))
+    # sim = simulator(problem)
+    # Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
+    # data = ExperimentData(X, Y)
+
+    @info "Initial data:"
+    for (x, y) in zip(eachcol(data.X), eachcol(data.Y))
+        println("  $x -> $y")
+    end
+
     
     ### SURROGATE MODEL ###
     model = GaussianProcess(;
@@ -72,23 +94,6 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     #     x_samples = 2 * 10^x_dim(problem),
     #     x_proposal = x_prior(problem),
     # )
-
-    
-    ### INIT DATA ###
-    if isnothing(data)
-        data = get_init_data(problem, init_data_count)
-    else
-        @assert data isa AbstractMatrix{<:Real}
-        sim = simulator(problem)
-        X = data
-        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
-        data = BOSS.ExperimentData(X, Y)
-    end
-
-    @info "Initial data:"
-    for (x, y) in zip(eachcol(data.X), eachcol(data.Y))
-        println("  $x -> $y")
-    end
 
     
     ### BOLFI PROBLEM ###
@@ -158,26 +163,28 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
 
     
     ### PERFORMANCE METRIC ###
-    xs = rand(bolfi.x_prior, 2 * 10^x_dim(problem))
+    sample_count = 20 * 10^x_dim(problem)
+
+    xs = rand(bolfi.x_prior, sample_count)
     ws = exp.( (0.) .- logpdf.(Ref(bolfi.x_prior), eachcol(xs)) )
 
     metric_cb = MetricCallback(;
         reference = reference(problem),
         logpost_estimator = log_posterior_estimate(),
         sampler,
-        sample_count = 2 * 10^x_dim(problem),
+        sample_count,
         # metric = MMDMetric(;
         #     kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         # ),
-        metric = OptMMDMetric(;
-            kernel = GaussianKernel(),
-            bounds,
-            algorithm = BOBYQA(),
-        ),
-        # metric = TVMetric(;
-        #     grid = xs,
-        #     ws = ws,
+        # metric = OptMMDMetric(;
+        #     kernel = GaussianKernel(),
+        #     bounds,
+        #     algorithm = BOBYQA(),
         # ),
+        metric = TVMetric(;
+            grid = xs,
+            ws = ws,
+        ),
     )
     # first callback in `callbacks` (this is important for `SaveCallback`)
     callbacks = BolfiCallback[]
@@ -189,7 +196,8 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
         problem,
         sampler,
         sample_count = 2 * 10^x_dim(problem),
-        plot_each = 1, # TODO
+        resolution = 200,
+        plot_each = 10, # TODO
         save_plots = true,
     )
     plots && push!(callbacks, plot_cb)
