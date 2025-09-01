@@ -1,5 +1,5 @@
 
-This repo contains implementation of a wrapper of BOLFI.jl for the `sbibm` benchmark.
+This repo contains benchmarks of the BOSIP.jl method.
 
 # Installation
 

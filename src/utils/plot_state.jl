@@ -1,6 +1,6 @@
 module PlotModule
 
-using BOLFI
+using BOSIP
 using CairoMakie
 
 import ..AbstractProblem
@@ -9,7 +9,7 @@ import ..log_posterior_estimate
 
 include("../data_paths.jl")
 
-@kwdef struct PlotCB <: BolfiCallback
+@kwdef struct PlotCB <: BosipCallback
     problem::AbstractProblem
     sampler::DistributionSampler
     sample_count::Int
@@ -18,21 +18,21 @@ include("../data_paths.jl")
     save_plots::Bool = false
 end
 
-function (cb::PlotCB)(bolfi::BolfiProblem; term_cond, first, kwargs...)
+function (cb::PlotCB)(bosip::BosipProblem; term_cond, first, kwargs...)
     # first && return
     (term_cond.iter % cb.plot_each == 0) || return
 
-    plot_state(bolfi, cb.problem, cb.sampler, cb.sample_count, term_cond.iter; cb.resolution, cb.save_plots)
+    plot_state(bosip, cb.problem, cb.sampler, cb.sample_count, term_cond.iter; cb.resolution, cb.save_plots)
 end
 
-function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::DistributionSampler, sample_count::Int, iter::Int; resolution=500, save_plots=false)
+function plot_state(bosip::BosipProblem, p::AbstractProblem, sampler::DistributionSampler, sample_count::Int, iter::Int; resolution=500, save_plots=false)
     ref = reference(p)
-    domain = bolfi.problem.domain
+    domain = bosip.problem.domain
     lb, ub = domain.bounds
-    X = bolfi.problem.data.X
+    X = bosip.problem.data.X
     
     ### log-posteriors
-    est_logpost = log_posterior_estimate()(bolfi)
+    est_logpost = log_posterior_estimate()(bosip)
     if ref isa Function
         ref_logpost = ref
     end
@@ -69,11 +69,11 @@ function plot_state(bolfi::BolfiProblem, p::AbstractProblem, sampler::Distributi
     ### sample posterior
     # TODO
     # if ref isa Function
-    #     true_samples = BOLFI.pure_sample_posterior(sampler, ref, domain, sample_count)
+    #     true_samples = BOSIP.pure_sample_posterior(sampler, ref, domain, sample_count)
     # else
     #     true_samples = ref
     # end
-    # approx_samples = BOLFI.pure_sample_posterior(sampler, est_logpost, domain, sample_count) 
+    # approx_samples = BOSIP.pure_sample_posterior(sampler, est_logpost, domain, sample_count) 
 
 
     ### ### ### THE FIGURE ### ### ###

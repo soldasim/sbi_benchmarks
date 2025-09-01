@@ -2,7 +2,7 @@
 
 # ARGS are:
 # #1: problem name (matches a subtype of `AbstractProblem`)
-# #2: run name (describes the used BOLFI setup)
+# #2: run name (describes the used BOSIP setup)
 # #3: run index
 const problem_name = ARGS[1]
 const run_name = ARGS[2]

@@ -1,5 +1,5 @@
 include("init_data.jl")
-include("bolfi_problem.jl")
+include("bosip_problem.jl")
 include("truncated.jl")
 include("plot_state.jl")
 include("save_callback.jl")

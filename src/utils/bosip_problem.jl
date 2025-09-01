@@ -1,11 +1,11 @@
 
-function construct_bolfi_problem(;
+function construct_bosip_problem(;
     problem::AbstractProblem,
     data::ExperimentData,
-    acquisition::BolfiAcquisition,
+    acquisition::BosipAcquisition,
     model::SurrogateModel,
 )
-    return BolfiProblem(data;
+    return BosipProblem(data;
         f = simulator(problem),
         domain = domain(problem),
         acquisition,

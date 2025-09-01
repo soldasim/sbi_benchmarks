@@ -125,7 +125,7 @@ function recalculate_scores!(problem::AbstractProblem; plotted_groups=nothing)
     # TODO
     sampler = AMISSampler(;
             iters = 10,
-            proposal_fitter = BOLFI.AnalyticalFitter(), # re-fit the proposal analytically
+            proposal_fitter = BOSIP.AnalyticalFitter(), # re-fit the proposal analytically
             # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
             #     algorithm = NEWUOA(),
             #     multistart = 24,
@@ -176,24 +176,24 @@ function recalculate_scores!(problem::AbstractProblem; plotted_groups=nothing)
     return scores_by_group
 end
 
-function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::BolfiProblem, sampler::DistributionSampler)
+function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::BosipProblem, sampler::DistributionSampler)
     # TODO
     sample_count = 2 * 10^x_dim(problem)
 
     ref = reference(problem)
     if ref isa Function
-        true_samples = BOLFI.pure_sample_posterior(sampler, ref, p.problem.domain, sample_count)
+        true_samples = BOSIP.pure_sample_posterior(sampler, ref, p.problem.domain, sample_count)
     else
         true_samples = ref
     end
 
     est_logpost = log_posterior_estimate()(p)
-    approx_samples = BOLFI.pure_sample_posterior(sampler, est_logpost, p.problem.domain, sample_count)
+    approx_samples = BOSIP.pure_sample_posterior(sampler, est_logpost, p.problem.domain, sample_count)
 
     score = calculate_metric(metric, true_samples, approx_samples)
     return score
 end
-function calculate_score(metric::PDFMetric, problem::AbstractProblem, p::BolfiProblem, sampler::DistributionSampler)
+function calculate_score(metric::PDFMetric, problem::AbstractProblem, p::BosipProblem, sampler::DistributionSampler)
     ### retrieve the true and approx logpdf
     ref = reference(problem)
     @assert ref isa Function

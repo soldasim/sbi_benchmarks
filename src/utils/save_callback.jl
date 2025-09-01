@@ -9,13 +9,13 @@ Saves the run data after every iteration (by overwriting the data stored in the 
 - `filename::String`: The base filename (without the file extension).
 - `run_idx::Union{Int, Nothing} = nothing`
 """
-@kwdef struct SaveCallback <: BolfiCallback
+@kwdef struct SaveCallback <: BosipCallback
     dir::String
     filename::String
     run_idx::Union{Int, Nothing} = nothing
 end
 
-function (cb::SaveCallback)(problem::BolfiProblem; first, model_fitter, acq_maximizer, term_cond, options)
+function (cb::SaveCallback)(problem::BosipProblem; first, model_fitter, acq_maximizer, term_cond, options)
     mkpath(cb.dir)
 
     # problem & data

@@ -2,7 +2,7 @@
 # `EIMMD` instead of `MaxVar`
 
 using BOSS
-using BOLFI
+using BOSIP
 using Distributions
 using KernelFunctions
 using LinearAlgebra
@@ -94,20 +94,20 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     end
 
     
-    ### BOLFI PROBLEM ###
-    bolfi = construct_bolfi_problem(;
+    ### BOSIP PROBLEM ###
+    bosip = construct_bosip_problem(;
         problem,
         data,
         acquisition,
         model,
     )
 
-    return main(problem, bolfi; kwargs...)
+    return main(problem, bosip; kwargs...)
 end
 
 # for continuing an experiment (mainly for debugging)
-function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", save_data=false, metric=false, plots=false, run_idx=nothing)
-    bounds = bolfi.problem.domain.bounds
+function main(problem::AbstractProblem, bosip::BosipProblem; run_name="_test", save_data=false, metric=false, plots=false, run_idx=nothing)
+    bounds = bosip.problem.domain.bounds
 
 
     ### ALGORITHMS ###
@@ -141,7 +141,7 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
     # )
     sampler = AMISSampler(;
         iters = 10,
-        proposal_fitter = BOLFI.AnalyticalFitter(), # re-fit the proposal analytically
+        proposal_fitter = BOSIP.AnalyticalFitter(), # re-fit the proposal analytically
         # proposal_fitter = OptimizationFitter(;      # re-fit the proposal by MAP optimization
         #     algorithm = NEWUOA(),
         #     multistart = 6,
@@ -177,7 +177,7 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
         ),
     )
     # first callback in `callbacks` (this is important for `SaveCallback`)
-    callbacks = BolfiCallback[]
+    callbacks = BosipCallback[]
     metric && push!(callbacks, metric_cb)
 
 
@@ -199,14 +199,14 @@ function main(problem::AbstractProblem, bolfi::BolfiProblem; run_name="_test", s
     )
     save_data && push!(callbacks, data_cb)
 
-    options = BolfiOptions(;
+    options = BosipOptions(;
         callback = CombinedCallback(callbacks...),
     )
 
     
     ### RUN ###
-    bolfi!(bolfi; model_fitter, acq_maximizer, term_cond, options)
-    return bolfi
+    bosip!(bosip; model_fitter, acq_maximizer, term_cond, options)
+    return bosip
 end
 
 function run(problem::AbstractProblem)

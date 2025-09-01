@@ -30,7 +30,7 @@ import ..true_f
 import ..reference_samples
 
 using BOSS
-using BOLFI
+using BOSIP
 using Distributions
 
 
