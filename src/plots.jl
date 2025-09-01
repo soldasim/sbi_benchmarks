@@ -11,7 +11,7 @@ function plot_results(problems::AbstractVector; save_plot=false, xscale=identity
 
     # TODO
     scores_by_group = load_stored_scores!(problems)
-    # scores_by_group = recalculate_scores!(problems)
+    # scores_by_group = recalculate_scores!(problems; plotted_groups)
 
     fig = Figure()
     ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", xscale, yscale)
@@ -27,7 +27,12 @@ function plot_results(problems::AbstractVector; save_plot=false, xscale=identity
         # scores is a Vector of score histories (each is a Vector)
         # Pad with `missing` to equal length if needed
         maxlen = maximum(length.(scores))
-        allequal(length.(scores)) || @warn "Scores for group $group have different lengths, padding with `missing`."
+        if !allequal(length.(scores))
+            maxlen = maximum(length.(scores))
+            successful = sum(length.(scores) .== maxlen)
+            @warn "Scores for group \"$group\" have different lengths! Padding with `missing`.
+            ($successful/$(length(scores)) runs have the max length of $maxlen)"
+        end
         padded = [vcat(s, fill(missing, maxlen - length(s))) for s in scores]
         arr = reduce(hcat, padded)
         xs = 0:maxlen-1 |> collect
@@ -62,9 +67,14 @@ end
 plot_name(problems::AbstractVector) = join(plot_name.(problems), "_")
 plot_name(problem::AbstractProblem) = string(typeof(problem))
 
-function load_stored_scores!(problems::AbstractVector)
-    dirs = data_dir.(problems)
-    files = sort(vcat(Glob.glob.(joinpath.(dirs, Ref("*.jld2")))...))
+function load_stored_scores!(problems::AbstractVector; kwargs...)
+    return merge(load_stored_scores!.(problems; kwargs...)...)
+end
+function load_stored_scores!(problem::AbstractProblem)
+    # TODO dir
+    dir = data_dir(problem)
+    # dir = "data/archive/data_01/" * string(typeof(problems[1]))
+    files = sort(Glob.glob(joinpath(dir, "*.jld2")))
     
     scores_by_group = Dict{String, Vector{Vector{Float64}}}()
 
@@ -86,21 +96,30 @@ function load_stored_scores!(problems::AbstractVector)
     return scores_by_group
 end
 
-function recalculate_scores!(problems::AbstractVector)
-    return recalculate_scores!.(problems) |> merge
+function recalculate_scores!(problems::AbstractVector; kwargs...)
+    return merge(recalculate_scores!.(problems; kwargs...)...)
 end
-function recalculate_scores!(problem::AbstractProblem)
+function recalculate_scores!(problem::AbstractProblem; plotted_groups=nothing)
     dir = data_dir(problem)
     files = sort(Glob.glob(joinpath(dir, "*.jld2")))
 
+    scores_by_group = Dict{String, Vector{Vector{Float64}}}()
+
     # TODO
+    xs = rand(x_prior(problem), 20 * 10^x_dim(problem))
+    ws = exp.( (0.) .- logpdf.(Ref(x_prior(problem)), eachcol(xs)) )
+
     # metric = MMDMetric(;
     #     kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
     # )
-    metric = OptMMDMetric(;
-        kernel = GaussianKernel(),
-        bounds,
-        algorithm = BOBYQA(),
+    # metric = OptMMDMetric(;
+    #     kernel = GaussianKernel(),
+    #     bounds,
+    #     algorithm = BOBYQA(),
+    # )
+    metric = TVMetric(;
+        grid = xs,
+        ws = ws,
     )
 
     # TODO
@@ -131,8 +150,14 @@ function recalculate_scores!(problem::AbstractProblem)
         group = split(fname, "_")[1]
         run_idx = split(fname, "_")[2]
         
+        # only calculate for the groups from the list
+        if !(group in plotted_groups)
+            scores_by_group[group] = Vector{Float64}[] # just to keep plot colors consistent
+            continue
+        end
+        
         # startswith(fname, "start") && continue  # skip start files
-        endswith(fname, "iters") || continue    # only consider the iters files
+        endswith(fname, "iters") || continue  # only consider the iters files
 
         iters = load(file)["problems"]
 
@@ -141,7 +166,6 @@ function recalculate_scores!(problem::AbstractProblem)
         end
 
         # Recalculate the score using the MetricCallback
-
         scores = zeros(length(iters))
         @showprogress desc="Calculating run_$run_idx" for (idx, itr) in enumerate(iters)
             scores[idx] = calculate_score(metric, problem, itr, sampler)
@@ -167,5 +191,17 @@ function calculate_score(metric::SampleMetric, problem::AbstractProblem, p::Bolf
     approx_samples = BOLFI.pure_sample_posterior(sampler, est_logpost, p.problem.domain, sample_count)
 
     score = calculate_metric(metric, true_samples, approx_samples)
+    return score
+end
+function calculate_score(metric::PDFMetric, problem::AbstractProblem, p::BolfiProblem, sampler::DistributionSampler)
+    ### retrieve the true and approx logpdf
+    ref = reference(problem)
+    @assert ref isa Function
+    
+    true_logpdf = ref
+    approx_logpdf = log_posterior_estimate()(p)
+
+    ### calculate metric
+    score = calculate_metric(metric, true_logpdf, approx_logpdf)
     return score
 end
