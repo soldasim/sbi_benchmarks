@@ -4,9 +4,19 @@ using ProgressMeter
 
 plot_results(problem::AbstractProblem; kwargs...) = plot_results([problem]; kwargs...)
 
-function plot_results(problems::AbstractVector; save_plot=false, xscale=identity, yscale=log)
+function plot_results(problems::AbstractVector; save_plot=false, xscale=log10, yscale=log)
     ### setings
-    plotted_groups = ["standard", "loglike", "loglike-imiqr", "eiv", "eiig", "nongp"] # TODO
+    plotted_groups = ["loglike", "loglike-imiqr", "standard", "eiv", "eiig", "nongp"] # TODO
+    group_labels = Dict([
+        "standard" => "GP - output - MaxVar",
+        "loglike" => "GP - loglike - MaxVar",
+        "loglike-imiqr" => "GP - loglike - IMIQR",
+        "eiv" => "GP - output - EIV",
+        "eiig" => "GP - output - EIMMD",
+        "nongp" => "nonGP - output - MaxVar",
+    ]) # TODO
+    title = "AB Problem" # TODO
+    ylabel = "OptMMD" # TODO
     ###
 
     # TODO
@@ -14,14 +24,14 @@ function plot_results(problems::AbstractVector; save_plot=false, xscale=identity
     # scores_by_group = recalculate_scores!(problems; plotted_groups)
 
     fig = Figure()
-    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel="Median Score", title="Median Scores by Group", xscale, yscale)
+    ax = Axis(fig[1, 1]; xlabel="Iteration", ylabel, title, xscale, yscale)
 
     colors = Makie.wong_colors()  # or use any preferred color palette
     group_names = collect(keys(scores_by_group))
-    color_map = Dict(group => colors[mod1(i, length(colors))] for (i, group) in enumerate(group_names))
+    color_map = Dict(group => colors[i] for (i, group) in enumerate(group_names))
 
-    for (group, scores) in scores_by_group
-        group in plotted_groups || continue
+    for group in plotted_groups
+        scores = scores_by_group[group]
 
         color = color_map[group]
         # scores is a Vector of score histories (each is a Vector)
@@ -35,30 +45,48 @@ function plot_results(problems::AbstractVector; save_plot=false, xscale=identity
         end
         padded = [vcat(s, fill(missing, maxlen - length(s))) for s in scores]
         arr = reduce(hcat, padded)
-        xs = 0:maxlen-1 |> collect
 
         # avoid zero if xscale if logarithmic
-        if isinf(xscale(0)) && (xs[1] == 0)
-            xs = xs[2:end]
-            arr = arr[2:end, :]
+        if xscale(0) |> isinf
+            xs = 1:maxlen |> collect
+        else
+            xs = 0:maxlen-1 |> collect
         end
-
-        # Compute statistics ignoring NaNs
-        median_scores = mapslices(median∘skipmissing, arr; dims=2)[:]
-        q25 = mapslices(x -> quantile(skipmissing(x), 0.25), arr; dims=2)[:]
-        q75 = mapslices(x -> quantile(skipmissing(x), 0.75), arr; dims=2)[:]
+        
         # Plot median line
-        lines!(ax, xs, median_scores, label=group, color=color)
-        # Plot quantile band with alpha
-        band!(ax, xs, q25, q75; color=color, alpha=0.6)
+        label = get(group_labels, group, group)
+        median_scores = mapslices(median∘skipmissing, arr; dims=2)[:]
+        lines!(ax, xs, median_scores; label, color=color)
+        
+        # # Plot quantile band with alpha
+        # lq = mapslices(x -> quantile(skipmissing(x), 0.1), arr; dims=2)[:]
+        # uq = mapslices(x -> quantile(skipmissing(x), 0.9), arr; dims=2)[:]
+        # band!(ax, xs, lq, uq; color=color, alpha=0.6)
 
-        q10 = mapslices(x -> quantile(skipmissing(x), 0.1), arr; dims=2)[:]
-        q90 = mapslices(x -> quantile(skipmissing(x), 0.9), arr; dims=2)[:]
-        lines!(ax, xs, q10; color=color, linestyle=:dot, linewidth=1)
-        lines!(ax, xs, q90; color=color, linestyle=:dot, linewidth=1)
+        # # Plot min/max dotted lines
+        # maxs = mapslices(x -> maximum(skipmissing(x)), arr; dims=2)[:]
+        # mins = mapslices(x -> minimum(skipmissing(x)), arr; dims=2)[:]
+        # lines!(ax, xs, maxs; color=color, linestyle=:dot, linewidth=1)
+        # lines!(ax, xs, mins; color=color, linestyle=:dot, linewidth=1)
     end
 
-    axislegend(ax)
+    # plot reference opt_mmd values
+    p = problems[1]
+    ref_optmmd_file = joinpath(data_dir(p), "opt_mmd", "mmd_vals.jld2")
+    if isfile(ref_optmmd_file)
+        mmd_vals = load(ref_optmmd_file)["mmd_vals"]
+        lq = quantile(mmd_vals, 0.1)
+        med = median(mmd_vals)
+        uq = quantile(mmd_vals, 0.9)
+
+        hlines!(ax, [lq, uq]; color=:black, linestyle=:dot)
+        hlines!(ax, [med]; color=:black, linestyle=:dash)
+    else
+        @warn "Reference OptMMD file not found: $ref_optmmd_file"
+    end
+
+    # axislegend(ax)
+    axislegend(ax; position=:rc)
 
     save_plot && save(plot_dir() * "/" * plot_name(problems) * ".png", fig)
     fig
