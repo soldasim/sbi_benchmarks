@@ -176,15 +176,15 @@ function main(problem::AbstractProblem, bosip::BosipProblem; run_name="test", sa
         # metric = MMDMetric(;
         #     kernel = with_lengthscale(GaussianKernel(), (bounds[2] .- bounds[1]) ./ 3),
         # ),
-        # metric = OptMMDMetric(;
-        #     kernel = GaussianKernel(),
-        #     bounds,
-        #     algorithm = BOBYQA(),
-        # ),
-        metric = TVMetric(;
-            grid = xs,
-            ws = ws,
+        metric = OptMMDMetric(;
+            kernel = GaussianKernel(),
+            bounds,
+            algorithm = BOBYQA(),
         ),
+        # metric = TVMetric(;
+        #     grid = xs,
+        #     ws = ws,
+        # ),
     )
     # first callback in `callbacks` (this is important for `SaveCallback`)
     callbacks = BosipCallback[]
