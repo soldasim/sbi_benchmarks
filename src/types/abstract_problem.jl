@@ -167,12 +167,20 @@ function true_logpost(problem::AbstractProblem)
 
     isnothing(f) && return nothing
 
-    function true_post(x)
+    function true_post(x::AbstractVector{<:Real})
         y = f(x)
         ll = loglike(like, y)
         lp = logpdf(prior, x)
         return ll + lp
     end
+    function true_post(X::AbstractMatrix{<:Real})
+        ps = similar(X, size(X, 2))
+        Threads.@threads for i in 1:size(X, 2)
+            ps[i] = true_post(@view X[:,i])
+        end
+        return ps
+    end
+    return true_post
 end
 
 x_dim(problem::AbstractProblem) = length(domain(problem).bounds[1])

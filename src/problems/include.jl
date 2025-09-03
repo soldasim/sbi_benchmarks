@@ -13,3 +13,6 @@ include("jarvenpaa/banana.jl")
 include("jarvenpaa/banana_log.jl")
 include("jarvenpaa/bimodal.jl")
 include("jarvenpaa/bimodal_log.jl")
+
+# Physical systems
+include("physical/duffing.jl")
