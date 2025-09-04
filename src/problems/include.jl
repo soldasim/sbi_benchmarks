@@ -16,3 +16,4 @@ include("jarvenpaa/bimodal_log.jl")
 
 # Physical systems
 include("physical/duffing.jl")
+include("physical/diffusion.jl")
