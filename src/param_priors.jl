@@ -2,6 +2,10 @@
 
 function get_lengthscale_priors(problem::AbstractProblem)
     bounds = domain(problem).bounds
+    ydim = y_dim(problem)
+    return get_lengthscale_priors(bounds, ydim)
+end
+function get_lengthscale_priors(bounds::AbstractBounds, ydim::Int)
     d = (bounds[2] .- bounds[1])
 
     min_λs = d ./ 20
@@ -13,16 +17,17 @@ function get_lengthscale_priors(problem::AbstractProblem)
 
     dists = map((d, max_λ) -> truncated(d; upper=max_λ), dists, max_λs)
 
-    return fill(product_distribution(dists), y_dim(problem))
+    return fill(product_distribution(dists), ydim)
 end
 
 function get_amplitude_priors(problem::AbstractProblem)
     est_α = est_amplitude(problem)
-
+    return get_amplitude_priors(est_α)
+end
+function get_amplitude_priors(est_α::AbstractVector{<:Real})
     d = TDist(2)
     d = truncated(d; lower=0.)
     dists = transformed.(Ref(d), Bijectors.Scale.(est_α))
-
     return dists
 end
 
