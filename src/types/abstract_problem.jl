@@ -11,6 +11,10 @@ Each subtype of `AbstractProblem` *should* implement:
 - `x_prior(::AbstractProblem) -> ::MultivariateDistribution`
 - `est_amplitude(::AbstractProblem) -> ::AbstractVector{<:Real}`
 - `est_noise_std(::AbstractProblem) -> ::AbstractVector{<:Real} or ::Nothing`
+- `est_grad_noise_std(::AbstractProblem) -> ::AbstractVector{<:Real} or ::Nothing`
+
+Subtypes of `AbstractProblem` *may* implement:
+- `set_gradients(::AbstractProblem, val::Bool) -> ::AbstractProblem`
 
 Each subtype of `AbstractProblem` *should* implement *at least one* of:
 - `true_f(::AbstractProblem) -> ::Union{Nothing, Function}`: Defaults to `nothing`.
@@ -88,6 +92,17 @@ The noise std prior is initialized to support values similar to the estimated no
 Return `nothing` if the problem is noise-less (and we assume to have this knowledge).
 """
 function est_noise_std end
+
+"""
+    est_grad_noise_std(::AbstractProblem) -> ::AbstractVector{<:Real} or ::Nothing
+
+Return the (estimated) gradient noise standard deviation.
+
+The gradient noise std prior is initialized to support values similar to the estimated gradient noise standard deviation.
+
+Return `nothing` if the problem is noise-less (and we assume to have this knowledge).
+"""
+function est_grad_noise_std end
 
 """
     true_f(::AbstractProblem) -> ::Union{Nothing, Function}

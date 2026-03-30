@@ -8,7 +8,11 @@ In contrast to the problem as defined in the paper, here the input vector `x`
 is returned as the simulator output (i.e. the simulator is just the identity function).
 See the `LogSimpleProblem` for the original version of the problem.
 """
-struct SimpleProblem <: AbstractProblem end
+@kwdef struct SimpleProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::SimpleProblem, val::Bool) = SimpleProblem(val)
 
 
 module SimpleProblemModule
@@ -23,6 +27,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -33,7 +38,7 @@ using Bijectors
 
 # --- API ---
 
-simulator(::SimpleProblem) = simulation
+simulator(p::SimpleProblem) = p.gradients ? simulation_with_grads : simulation
 
 domain(::SimpleProblem) = Domain(;
     bounds = get_bounds(),
@@ -49,6 +54,7 @@ est_amplitude(::SimpleProblem) = fill(20., 2)
 
 # TODO noise
 est_noise_std(::SimpleProblem) = nothing
+est_grad_noise_std(::SimpleProblem) = nothing
 
 true_f(::SimpleProblem) = simulation
 
@@ -69,6 +75,11 @@ const inv_S = inv(Σ)
 
 function simulation(x)
     return x
+end
+function simulation_with_grads(x)
+    y = x
+    J = [1. 0.; 0. 1.]
+    return y, J
 end
 
 get_likelihood() = MvNormalLikelihood(;

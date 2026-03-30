@@ -3,7 +3,8 @@
 
 include("../src/calculate_score.jl")
 
-function queue_score_calc(problem::AbstractProblem, run_name::String, metric::Type{<:DistributionMetric}, estimator::Function;
+function queue_score_calc(problem::AbstractProblem, run_name::String, metric::Type{<:DistributionMetric};
+    estimator = log_posterior_mean,
     selected_runs = nothing,
 )
     pname = get_name(problem)
@@ -24,7 +25,8 @@ function queue_score_calc(problem::AbstractProblem, run_name::String, metric::Ty
         @info "Queuing calculation of \"$(metric)\" for problem:\"$(pname)\", run_name:\"$(run_name)\", run_idx:\"$(run_idx)\""
         # TODO --mem (the code was failing with the `SimpleProblem` with the default 4G memory)
         job_name = "$(metric)_$(pname)_$(run_name)_$(run_idx)"
-        Base.run(`sbatch -p cpulong --mem=16G --job-name=$job_name cluster_scripts/run_score.sh $pname $run_name $run_idx $metric $(nameof(estimator))`)
+        device = "cpu" # TODO "cpu"
+        Base.run(`sbatch -p $device --mem=16G --job-name=$job_name cluster_scripts/run_score.sh $pname $run_name $run_idx $metric $(nameof(estimator))`)
     end
 
     nothing

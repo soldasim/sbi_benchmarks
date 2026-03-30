@@ -34,7 +34,7 @@ function (cb::SaveCallback)(problem::BosipProblem; first, model_fitter, acq_maxi
     # other
     save(cb.dir * "/" * cb.filename * "_extras.jld2", Dict(
         "run_idx" => cb.run_idx,
-        "problem" => problem,
+        # "problem" => problem,
         "model_fitter" => model_fitter,
         "acq_maximizer" => acq_maximizer,
         "term_cond" => term_cond,
@@ -54,17 +54,18 @@ function (cb::SaveCallback)(problem::BosipProblem; first, model_fitter, acq_maxi
     end
 
     # iters data
-    if first && cb.continued
-        # initialization for continued runs
-        # the `problem` is discarded - it should be equal to the last one in the loaded list
-        iters = reload_iters(cb)
-    elseif first
-        iters = [problem]
-    else
-        iters = load(cb.dir * "/" * cb.filename * "_iters.jld2")["problems"]
-        push!(iters, problem)
-    end
-    save(cb.dir * "/" * cb.filename * "_iters.jld2", Dict("problems" => iters))
+    @warn "NOT SAVING _iters.jld2 DATA"
+    # if first && cb.continued
+    #     # initialization for continued runs
+    #     # the `problem` is discarded - it should be equal to the last one in the loaded list
+    #     iters = reload_iters(cb)
+    # elseif first
+    #     iters = [problem]
+    # else
+    #     iters = load(cb.dir * "/" * cb.filename * "_iters.jld2")["problems"]
+    #     push!(iters, problem)
+    # end
+    # save(cb.dir * "/" * cb.filename * "_iters.jld2", Dict("problems" => iters))
 end
 
 ### for continuing runs ###
@@ -76,17 +77,25 @@ function reload_iters(cb::SaveCallback)
     ps_ = iters_data["problems"]
     return ps_
 end
+function reload_data(cb::SaveCallback)
+    data_file = cb.dir * "/" * cb.filename * "_data.jld2"
+    @assert isfile(data_file)
+
+    X,Y = load(data_file)["data"]
+    return size(X, 2)
+end
 
 function backup_data(cb::SaveCallback)
-    ps = reload_iters(cb)
-    iters = length(ps) - 1
+    # ps = reload_iters(cb)
+    # iters = length(ps) - 1
+    data_count = reload_data(cb)
 
     # backup previous data files by renaming them with a `.xxx` extension
     # with the number of iterations in the backed up data
     for file in filter(f -> startswith(f, cb.filename), readdir(cb.dir))
         fullpath = joinpath(cb.dir, file)
         if isfile(fullpath)
-            cp(fullpath, fullpath * ".$iters"; force=true)
+            cp(fullpath, fullpath * ".d$data_count"; force=true)
         end
     end
     return

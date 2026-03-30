@@ -11,7 +11,11 @@ where only the log-likelihood is returned by the simulator.
 
 The likelihood is Gaussian.
 """
-struct ABProblem <: AbstractProblem end
+@kwdef struct ABProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::ABProblem, val::Bool) = ABProblem(val)
 
 
 module ABProblemModule
@@ -26,6 +30,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -36,7 +41,7 @@ using Distributions
 
 # --- API ---
 
-simulator(::ABProblem) = ab_simulation
+simulator(p::ABProblem) = p.gradients ? ab_simulation_with_grads : ab_simulation
 
 domain(::ABProblem) = Domain(;
     bounds = _get_bounds(),
@@ -52,8 +57,9 @@ est_amplitude(::ABProblem) = [20.]
 
 # TODO noise
 est_noise_std(::ABProblem) = nothing
+est_grad_noise_std(::ABProblem) = nothing
 
-true_f(::ABProblem) = x -> ab_simulation(x; noise_std=zero(std_sim))
+true_f(::ABProblem) = ab_simulation
 
 
 # --- UTILS ---
@@ -61,18 +67,19 @@ true_f(::ABProblem) = x -> ab_simulation(x; noise_std=zero(std_sim))
 const z_obs = [1.]
 const std_obs = [0.2]
 
-# TODO noise
-# (not using noise in order to compare with loglike modeling more fairly)
-const std_sim = [0.]
-# const std_sim = [0.1]
 
 # the true blackbox function
 f_(x) = [x[1] * x[2]]
+J_(x) = [x[2] x[1]]
 
-function ab_simulation(x; noise_std=std_sim)
+function ab_simulation(x)
     y = f_(x)
-    y .+= rand(Normal(0., noise_std[1]))
     return y
+end
+function ab_simulation_with_grads(x)
+    y = f_(x)
+    J = J_(x)
+    return y, J
 end
 
 _get_bounds() = ([-5., -5.], [5., 5.])

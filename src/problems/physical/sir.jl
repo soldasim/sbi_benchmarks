@@ -24,7 +24,11 @@ The observations are binomial samples with probability p = I(t)/N at multiple ti
 subsampled every 17 days. The model predicts the probability p, and observations are 
 sampled from Binomial(trials=1000, p) at each time point.
 """
-struct SIRProblem <: AbstractProblem end
+@kwdef struct SIRProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::SIRProblem, val::Bool) = SIRProblem(val)
 
 module SIRModule
 
@@ -38,6 +42,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -45,11 +50,12 @@ using BOSS
 using BOSIP
 using Distributions
 using DifferentialEquations
+using ForwardDiff
 
 
 # --- API ---
 
-simulator(::SIRProblem) = model_target
+simulator(p::SIRProblem) = p.gradients ? sir_simulation_with_grads : sir_simulation
 
 domain(::SIRProblem) = Domain(;
     bounds = _get_bounds(),
@@ -69,8 +75,9 @@ est_amplitude(::SIRProblem) = _get_est_amplitude()
 
 # TODO noise
 est_noise_std(::SIRProblem) = nothing
+est_grad_noise_std(::SIRProblem) = fill(1., n_obs)
 
-true_f(::SIRProblem) = model_target
+true_f(::SIRProblem) = sir_simulation
 
 
 # --- UTILS ---
@@ -116,16 +123,6 @@ function sir_ode!(du, u, p, t)
 end
 
 """
-    model_target(x)
-
-The SIR problem simulator together with the mapping to the model target variable.
-Returns probabilities p = I/N at subsampled time points.
-"""
-function model_target(x)
-    return sir_simulation(x)
-end
-
-"""
     sir_simulation(x)
 
 Simulate the SIR epidemic model with parameters x = [β, γ].
@@ -150,9 +147,23 @@ function sir_simulation(x)
     p = p_series[indices[1:n_obs]]
     
     # Clamp to [0, 1] to ensure valid probabilities
-    p = clamp.(p, 0.0, 1.0)
+    # TODO ###
+    # p = clamp.(p, 0.0, 1.0)
+    p = clamp.(p, 1e-8, 1.0 - 1e-8)
     
     return p
+end
+
+"""
+    sir_simulation_with_grads(x)
+
+SIR simulator with automatic differentiation to compute Jacobian of probabilities w.r.t. parameters.
+Returns (y, J) where y are probabilities and J is the 2D Jacobian matrix.
+"""
+function sir_simulation_with_grads(x)
+    y = sir_simulation(x)
+    J = ForwardDiff.jacobian(sir_simulation, x)
+    return y, J
 end
 
 """

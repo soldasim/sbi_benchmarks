@@ -21,10 +21,11 @@ end
 function get_metric(::Type{TVMetric}, problem::AbstractProblem)
     # TODO
     xs = rand(x_prior(problem), 20 * 10^x_dim(problem))
-    ws = exp.( (0.) .- logpdf.(Ref(x_prior(problem)), eachcol(xs)) )
+    log_ws = 0. .- logpdf.(Ref(x_prior(problem)), eachcol(xs))
 
     return TVMetric(;
         grid = xs,
-        ws = ws,
+        log_ws = log_ws,
+        true_logpost = true_logpost(problem),
     )
 end

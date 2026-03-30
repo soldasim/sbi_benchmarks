@@ -8,7 +8,11 @@ In contrast to the problem as defined in the paper, here the vector `[x[1], x[2]
 is returned as the simulator output instead of the log-likelihood value.
 See the `LogSimpleProblem` for the original version of the problem.
 """
-struct BimodalProblem <: AbstractProblem end
+@kwdef struct BimodalProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::BimodalProblem, val::Bool) = BimodalProblem(val)
 
 
 module BimodalProblemModule
@@ -23,6 +27,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -33,7 +38,7 @@ using Bijectors
 
 # --- API ---
 
-simulator(::BimodalProblem) = simulation
+simulator(p::BimodalProblem) = p.gradients ? simulation_with_grads : simulation
 
 domain(::BimodalProblem) = Domain(;
     bounds = get_bounds(),
@@ -49,6 +54,7 @@ est_amplitude(::BimodalProblem) = fill(20., 2)
 
 # TODO noise
 est_noise_std(::BimodalProblem) = nothing
+est_grad_noise_std(::BimodalProblem) = nothing
 
 true_f(::BimodalProblem) = simulation
 
@@ -73,6 +79,11 @@ const inv_S = inv(Σ)
 function simulation(x)
     θ = [x[1], x[2]^2 - 2]
     return θ
+end
+function simulation_with_grads(x)
+    y = [x[1], x[2]^2 - 2]
+    J = [1. 0.; 0. 2 * x[2]]
+    return y, J
 end
 
 get_likelihood() = MvNormalLikelihood(;

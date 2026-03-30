@@ -24,7 +24,11 @@ The observations are binomial samples with probability p = I(t)/N at multiple ti
 subsampled every 17 days. The model predicts the probability p, and observations are 
 sampled from Binomial(trials=1000, p) at each time point.
 """
-struct ProxySIRProblem <: AbstractProblem end
+@kwdef struct ProxySIRProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::ProxySIRProblem, val::Bool) = ProxySIRProblem(val)
 
 module ProxySIRModule
 
@@ -38,6 +42,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -45,6 +50,7 @@ using BOSS
 using BOSIP
 using Distributions
 using DifferentialEquations
+using ForwardDiff
 
 ### Use the analytical reference posterior from the original SIRProblem
 import ..true_logpost
@@ -54,19 +60,23 @@ true_logpost(::ProxySIRProblem) = true_logpost(SIRProblem())
 
 # --- API ---
 
-simulator(::ProxySIRProblem) = model_target
+simulator(p::ProxySIRProblem) = p.gradients ? sir_simulation_with_grads : sir_simulation
 
 domain(::ProxySIRProblem) = Domain(;
     bounds = _get_bounds(),
 )
 
 # TODO proxy
+ϕ(p) = log.(1 .+ trials .* p)
+inv_ϕ(δ) = (exp.(δ) .- 1) ./ trials
+
+# TODO proxy
 function log_ψ(δ::AbstractVector{<:Real}, x::AbstractVector{<:Real})
     # transform δ back to probabilities
-    y = (exp.(δ) .- 1) ./ trials
+    p = inv_ϕ(δ)
+    p = clamp.(p, 0.0, 1.0)
 
-    y = clamp.(y, 0.0, 1.0)
-    return mapreduce((t, p, z) -> logpdf(Binomial(t, p), z), +, trials, y, z_obs)
+    return mapreduce((t, p, z) -> logpdf(Binomial(t, p), z), +, trials, p, z_obs)
 end
 
 # TODO proxy
@@ -76,6 +86,7 @@ end
 #     int_grid_size = 200,
 # )
 likelihood(::ProxySIRProblem) = CustomLikelihood(;
+    δ_dim = n_obs,
     log_ψ,
     mc_samples = 1000, # TODO
 )
@@ -88,8 +99,9 @@ est_amplitude(::ProxySIRProblem) = _get_est_amplitude()
 
 # TODO noise
 est_noise_std(::ProxySIRProblem) = nothing
+est_grad_noise_std(::ProxySIRProblem) = nothing
 
-true_f(::ProxySIRProblem) = model_target
+true_f(::ProxySIRProblem) = sir_simulation
 
 
 # --- UTILS ---
@@ -135,16 +147,6 @@ function sir_ode!(du, u, p, t)
 end
 
 """
-    model_target(x)
-
-The SIR problem simulator together with the mapping to the model target variable.
-Returns probabilities p = I/N at subsampled time points.
-"""
-function model_target(x)
-    return sir_simulation(x)
-end
-
-"""
     sir_simulation(x)
 
 Simulate the SIR epidemic model with parameters x = [β, γ].
@@ -172,8 +174,19 @@ function sir_simulation(x)
     p = clamp.(p, 0.0, 1.0)
     
     # TODO proxy
-    # return p
-    return log.(1 .+ (p .* trials))
+    return ϕ(p)
+end
+
+"""
+    sir_simulation_with_grads(x)
+
+Simulate the SIR model and compute gradients with respect to parameters x = [β, γ].
+Returns the same probabilities as `sir_simulation` along with the Jacobian matrix of gradients.
+"""
+function sir_simulation_with_grads(x)
+    y = sir_simulation(x)
+    J = ForwardDiff.jacobian(sir_simulation, x)
+    return y, J
 end
 
 """
@@ -209,7 +222,7 @@ Prior mean based on binomial probabilities.
 """
 # TODO proxy
 # _get_prior_mean() = z_obs ./ trials
-_get_prior_mean() = log.(1 .+ z_obs)
+_get_prior_mean() = ϕ(z_obs ./ trials)
 
 """
 Estimated amplitude for each observation dimension.
@@ -217,7 +230,7 @@ For binomial likelihood, this represents the scale of probability values.
 """
 # TODO proxy
 # _get_est_amplitude() = fill(1.0, n_obs)
-_get_est_amplitude() = log.(1 .+ trials)
+_get_est_amplitude() = ϕ(ones(n_obs))
 
 """
 Truncated prior distribution for parameters.

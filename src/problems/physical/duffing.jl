@@ -19,7 +19,12 @@ the steady-state response characteristics to infer the parameters.
 The parameters to infer are [δ, α, β] with fixed γ=0.3 and ω=1.0.
 The observations are time series samples of the displacement x(t).
 """
-struct DuffingProblem <: AbstractProblem end
+@kwdef struct DuffingProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::DuffingProblem, val::Bool) = DuffingProblem(val)
+
 
 module DuffingModule
 
@@ -33,6 +38,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -41,11 +47,12 @@ using BOSIP
 using Distributions
 using DifferentialEquations
 using JLD2
+using ForwardDiff
 
 
 # --- API ---
 
-simulator(::DuffingProblem) = model_target
+simulator(p::DuffingProblem) = p.gradients ? _get_model_target_with_grads() : _get_model_target()
 
 domain(::DuffingProblem) = Domain(;
     bounds = _get_bounds(),
@@ -61,8 +68,9 @@ est_amplitude(::DuffingProblem) = _get_est_amplitude()
 
 # TODO noise
 est_noise_std(::DuffingProblem) = nothing
+est_grad_noise_std(::DuffingProblem) = fill(1., n_obs)
 
-true_f(::DuffingProblem) = model_target
+true_f(::DuffingProblem) = _get_model_target()
 reference_samples(::DuffingProblem) = load(joinpath(@__DIR__, "duffing_ref.jld2"))["xs"]
 
 
@@ -106,14 +114,32 @@ function duffing_ode!(du, u, p, t)
 end
 
 """
-    model_target(x_)
+    _get_model_target()
 
 The Duffing problem simulator together with the mapping to the model target variable.
+Returns a function that takes parameters x_ and returns the observed positions.
 """
-function model_target(x_)    
-    sol = duffing_simulation(x_)
-    positions, velocities, times = extract_measurements(sol)
-    return positions
+function _get_model_target()
+    function model_target(x_)
+        sol = duffing_simulation(x_)
+        positions, velocities, times = extract_measurements(sol)
+        return positions
+    end
+end
+
+"""
+    _get_model_target_with_grads()
+
+The Duffing problem simulator with gradient computation using ForwardDiff.jacobian.
+Returns a function that takes parameters x_ and returns (positions, J) where J is the jacobian matrix.
+"""
+function _get_model_target_with_grads()
+    f = _get_model_target()
+    function model_target_with_grads(x_)
+        y = f(x_)
+        J = ForwardDiff.jacobian(f, x_)
+        return y, J
+    end
 end
 
 """

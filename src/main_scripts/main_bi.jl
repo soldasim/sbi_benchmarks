@@ -1,4 +1,4 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### Bayesian inference
 
 using BOSS
 using BOSIP
@@ -7,6 +7,7 @@ using KernelFunctions
 using LinearAlgebra
 using OptimizationPRIMA
 using Bijectors
+using Turing
 
 using JLD2
 using Glob
@@ -49,8 +50,8 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
@@ -99,7 +100,6 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
         model,
     )
 
-
     data_max = size(data.X, 2) + iters
 
     return main(problem, bosip, estimator; data_max, kwargs...)
@@ -123,14 +123,14 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @assert bosip isa BosipProblem
 
     # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
     @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + iters # TODO
+    data_max = 3 + iters # TODO
 
     # continue
     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
@@ -148,11 +148,19 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     bounds = bosip.problem.domain.bounds
 
     ### ALGORITHMS ###
-    model_fitter = OptimizationMAP(;
-        algorithm = NEWUOA(),
-        multistart = 24,
-        parallel = parallel(),
-        rhoend = 1e-4,
+    # model_fitter = OptimizationMAP(;
+    #     algorithm = NEWUOA(),
+    #     multistart = 24,
+    #     parallel = parallel(),
+    #     rhoend = 1e-4,
+    # )
+    model_fitter = TuringBI(;
+        sampler = NUTS(),
+        warmup = 400,
+        samples_in_chain = 20,
+        chain_count = 8,
+        leap_size = 5,
+        parallel = true,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),

@@ -21,7 +21,7 @@ parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 include(pwd() * "/src/include_code.jl")
 
 ### START A NEW RUN ###
-function main(problem::AbstractProblem; data=nothing, kwargs...)
+function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     ### SETTINGS ###
     init_data_count = 3 # TODO
 
@@ -99,14 +99,14 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
         model,
     )
 
-    iters = 100 # TODO
+
     data_max = size(data.X, 2) + iters
 
     return main(problem, bosip, estimator; data_max, kwargs...)
 end
 
 ### CONTINUE A RUN ###
-function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; kwargs...)
+function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; iters=200, kwargs...)
     # # check the filename just to be sure
     # fname = basename(@__FILE__)
     # fname_split = split(fname, ['.', '_'])
@@ -130,7 +130,7 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
     @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + 200 # TODO
+    data_max = 3 + iters # TODO
 
     # continue
     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
@@ -199,9 +199,6 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
 
     
     ### PERFORMANCE METRIC ###
-    xs = rand(bosip.x_prior, 20 * 10^x_dim(problem))
-    ws = exp.( (0.) .- logpdf.(Ref(bosip.x_prior), eachcol(xs)) )
-
     # The initialization of the metric may take some time.
     # (in case the reference is being pre-calculated)
     if metric
@@ -214,10 +211,11 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
         #     algorithm = BOBYQA(),
         #     rhoend = 1e-4,
         # )
+        grid_data = load_grid(problem)
         metric_ = TVMetric(;
-            grid = xs,
-            ws = ws,
-            true_logpost = true_logpost(problem),
+            grid = grid_data.xs,
+            log_ws = grid_data.log_ws,
+            true_logvals = grid_data.true_logvals,
         )
 
         # Get a reference appropriate for the used metric is available.

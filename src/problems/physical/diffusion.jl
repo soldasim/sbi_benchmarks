@@ -32,10 +32,14 @@ The observations are integrated concentration measurements at 3 locations arrang
 
 ## Keywords
 - `model_interval::Float64=10.0`: The length of the modeled intervals.
+- `gradients::Bool=false`: Whether to compute gradients.
 """
 @kwdef struct DiffusionProblem <: AbstractProblem
     model_interval::Float64 = 10.0
+    gradients::Bool = false
 end
+
+set_gradients(p::DiffusionProblem, val::Bool) = DiffusionProblem(p.model_interval, val)
 
 # custom problem name for different variants
 function get_name(p::DiffusionProblem)
@@ -61,6 +65,7 @@ check_alias.((
     DiffusionProblem2,
 ))
 
+
 module DiffusionModule
 
 import ..DiffusionProblem
@@ -73,6 +78,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -80,11 +86,12 @@ using BOSS
 using BOSIP
 using Distributions
 using DifferentialEquations
+using ForwardDiff
 
 
 # --- API ---
 
-simulator(p::DiffusionProblem) = _get_model_target(p)
+simulator(p::DiffusionProblem) = p.gradients ? _get_model_target_with_grads(p) : _get_model_target(p)
 
 domain(::DiffusionProblem) = Domain(;
     bounds = _get_bounds(),
@@ -100,6 +107,7 @@ est_amplitude(p::DiffusionProblem) = _get_est_amplitude(p)
 
 # TODO noise
 est_noise_std(::DiffusionProblem) = nothing
+est_grad_noise_std(p::DiffusionProblem) = fill(1., n_obs_locs * n_modeled_times(p))
 
 true_f(p::DiffusionProblem) = _get_model_target(p)
 
@@ -297,6 +305,15 @@ function _get_model_target(p::DiffusionProblem)
     end
 end
 
+function _get_model_target_with_grads(p::DiffusionProblem)
+    f = _get_model_target(p)
+    function model_target_with_grads(x)
+        y = f(x)
+        J = ForwardDiff.jacobian(f, x)
+        return y, J
+    end
+end
+
 """
     diffusion_simulation(x)
 
@@ -327,7 +344,7 @@ Integrates concentration over specified intervals using trapezoidal integration.
 function extract_measurements(sol; interval_length)
     n_intervals_local = Int((t_span[2] - t_span[1]) / interval_length)
     n_total = n_intervals_local * length(obs_points)
-    y = zeros(Float64, n_total)
+    y = zeros(eltype(sol.u[1]), n_total)
     
     # Pre-compute observation point indices
     obs_indices = [(findfirst(==(x), x_grid), findfirst(==(y), y_grid)) for (x, y) in obs_points]

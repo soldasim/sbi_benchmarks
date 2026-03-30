@@ -8,7 +8,11 @@ In contrast to the problem as defined in the paper, here the vector `[x[1], x[2]
 is returned as the simulator output instead of the log-likelihood value.
 See the `LogSimpleProblem` for the original version of the problem.
 """
-struct BananaProblem <: AbstractProblem end
+@kwdef struct BananaProblem <: AbstractProblem
+    gradients::Bool = false
+end
+
+set_gradients(p::BananaProblem, val::Bool) = BananaProblem(val)
 
 
 module BananaProblemModule
@@ -23,6 +27,7 @@ import ..prior_mean
 import ..x_prior
 import ..est_amplitude
 import ..est_noise_std
+import ..est_grad_noise_std
 import ..true_f
 import ..reference_samples
 
@@ -33,7 +38,7 @@ using Bijectors
 
 # --- API ---
 
-simulator(::BananaProblem) = simulation
+simulator(p::BananaProblem) = p.gradients ? simulation_with_grads : simulation
 
 domain(::BananaProblem) = Domain(;
     bounds = get_bounds(),
@@ -49,6 +54,7 @@ est_amplitude(::BananaProblem) = fill(20., 2)
 
 # TODO noise
 est_noise_std(::BananaProblem) = nothing
+est_grad_noise_std(::BananaProblem) = nothing
 
 true_f(::BananaProblem) = simulation
 
@@ -73,6 +79,11 @@ const inv_S = inv(Σ)
 function simulation(x)
     θ = [x[1], x[2] + x[1]^2 + 1.]
     return θ
+end
+function simulation_with_grads(x)
+    y = [x[1], x[2] + x[1]^2 + 1.]
+    J = [1. 0.; 2 * x[1] 1.]
+    return y, J
 end
 
 get_likelihood() = MvNormalLikelihood(;
