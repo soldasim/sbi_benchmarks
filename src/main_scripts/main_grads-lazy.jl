@@ -1,4 +1,6 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### with Gradients
+### + lazy model parameter fitting
+### + more init data and more iters
 
 using BOSS
 using BOSIP
@@ -22,18 +24,22 @@ include(pwd() * "/src/include_code.jl")
 
 ### START A NEW RUN ###
 function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
+    problem = set_gradients(problem, true)
+
     ### SETTINGS ###
-    init_data_count = 3 # TODO
+    init_data_count = 3 # TODO !!! THIS DOES NOT DO ANYTHING AS `data` IS PROVIDED !!!
 
     ### INIT DATA ###
     if isnothing(data)
-        data = get_init_data(problem, init_data_count)
+        data = get_init_data_with_gradients(problem, init_data_count)
     else
         @assert data isa AbstractMatrix{<:Real}
         sim = simulator(problem)
         X = data
-        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
-        data = BOSS.ExperimentData(X, Y)
+        results = [sim(x) for x in eachcol(X)]
+        Y = hcat([r[1] for r in results]...)
+        J = cat([r[2] for r in results]...; dims=3)
+        data = BOSS.GradientData(X, Y, J)
     end
 
     # ### domain mean as only initial point
@@ -49,24 +55,32 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
-    model = GaussianProcess(;
-        mean = prior_mean(problem),
-        kernel = BOSS.Matern52Kernel(),
-        lengthscale_priors = get_lengthscale_priors(problem),
-        amplitude_priors = get_amplitude_priors(problem),
-        noise_std_priors = get_noise_std_priors(problem),
-    )
+    # model = GaussianProcess(;
+    #     mean = prior_mean(problem),
+    #     kernel = BOSS.Matern52Kernel(),
+    #     lengthscale_priors = get_lengthscale_priors(problem),
+    #     amplitude_priors = get_amplitude_priors(problem),
+    #     noise_std_priors = get_noise_std_priors(problem),
+    # )
     # model = NonstationaryGP(;
     #     mean = prior_mean(problem),
     #     lengthscale_model = BOSS.default_lengthscale_model(domain(problem).bounds, y_dim(problem)),
     #     amplitude_model = get_amplitude_priors(problem),
     #     noise_std_model = get_noise_std_priors(problem),
     # )
+    model = GradientGaussianProcess(;
+        mean = prior_mean(problem),
+        kernel = BOSS.Matern52Kernel(),
+        lengthscale_priors = get_lengthscale_priors(problem),
+        amplitude_priors = get_amplitude_priors(problem),
+        noise_std_priors = get_noise_std_priors(problem),
+        grad_noise_std_priors = get_grad_noise_std_priors(problem),
+    )
     
     
     ### ACQUISITION ###
@@ -100,7 +114,8 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     )
 
 
-    data_max = size(data.X, 2) + iters
+    # data_max = size(data.X, 2) + iters
+    data_max = 500
 
     return main(problem, bosip, estimator; data_max, kwargs...)
 end
@@ -123,14 +138,16 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @assert bosip isa BosipProblem
 
     # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + iters # TODO
+    # @assert data_count >= 3 + 100 # TODO
+    # data_max = 3 + iters # TODO
+    @show data_count
+    data_max = 500
 
     # continue
     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
@@ -150,15 +167,24 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     bounds = bosip.problem.domain.bounds
 
     ### ALGORITHMS ###
+    # model_fitter = LazyFitter(;
+    #     model_fitter = OptimizationMAP(;
+    #         algorithm = NEWUOA(),
+    #         multistart = 1, # only a single optimization run
+    #         parallel = parallel(),
+    #         rhoend = 1e-4,
+    #     )
+    #     data_ratio = 5/3, # only fit once (new_data / old_data >= 5/3)
+    # )
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
-        multistart = 24,
+        multistart = 1, # only a single optimization run
         parallel = parallel(),
         rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
-        multistart = 24,
+        multistart = 1, # only a single optimization run
         parallel = parallel(),
         rhoend = 1e-4,
     )
@@ -214,7 +240,7 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
         #     rhoend = 1e-4,
         # )
         grid_data = load_grid(problem)
-        metric_ = TVMetric(;
+        metric_ = TVMetric(
             grid = grid_data.xs,
             log_ws = grid_data.log_ws,
             true_logvals = grid_data.true_logvals,

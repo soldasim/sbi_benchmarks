@@ -1,4 +1,4 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### The default setup. + warm starts for the model fitting and limited fitting/maximization runs
 
 using BOSS
 using BOSIP
@@ -49,8 +49,8 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
@@ -123,8 +123,8 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @assert bosip isa BosipProblem
 
     # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters
@@ -152,13 +152,14 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     ### ALGORITHMS ###
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
-        multistart = 24,
+        multistart = 2, # TODO
+        warm_start = true, # TODO
         parallel = parallel(),
         rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
-        multistart = 24,
+        multistart = 2, # TODO
         parallel = parallel(),
         rhoend = 1e-4,
     )

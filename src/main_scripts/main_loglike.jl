@@ -140,10 +140,12 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     run_name = "test",
     save_data = false,
     metric = false,
+    convergence = false,
     plots = false,
     run_idx = nothing,
     continued = false,
     data_max = 1,
+    kwargs...
 )
     bounds = bosip.problem.domain.bounds
 
@@ -239,10 +241,21 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
             )
         end
     end
+    ### CONVERGENCE CALLBACK ###
+    if convergence
+        conv_data = load_simulator_grid(problem)
+        conv_cb = ConvergenceCallback(;
+            convergence_metric = l2_norm,
+            xs = conv_data.xs,
+            log_ws = conv_data.log_ws,
+            true_sim_outputs = conv_data.sim_outputs,
+        )
+    end
 
-    # first callback in `callbacks` (this is important for `SaveCallback`)
+    # first callback in `callbacks` (this is important for `SaveCallback`)
     callbacks = BosipCallback[]
     metric && push!(callbacks, metric_cb)
+    convergence && push!(callbacks, conv_cb)
 
 
     ### PLOTS ###

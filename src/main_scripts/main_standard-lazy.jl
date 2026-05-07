@@ -1,4 +1,6 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### The default setup.
+### + lazy model parameter fitting
+### + more init data and more iters
 
 using BOSS
 using BOSIP
@@ -23,7 +25,7 @@ include(pwd() * "/src/include_code.jl")
 ### START A NEW RUN ###
 function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     ### SETTINGS ###
-    init_data_count = 3 # TODO
+    init_data_count = 3 # TODO !!! THIS DOES NOT DO ANYTHING AS `data` IS PROVIDED !!!
 
     ### INIT DATA ###
     if isnothing(data)
@@ -49,8 +51,8 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
@@ -100,7 +102,8 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     )
 
 
-    data_max = size(data.X, 2) + iters
+    # data_max = size(data.X, 2) + iters
+    data_max = 500
 
     return main(problem, bosip, estimator; data_max, kwargs...)
 end
@@ -123,14 +126,16 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @assert bosip isa BosipProblem
 
     # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + iters # TODO
+    # @assert data_count >= 3 + 100 # TODO
+    # data_max = 3 + iters # TODO
+    @show data_count
+    data_max = 500
 
     # continue
     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
@@ -150,15 +155,24 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     bounds = bosip.problem.domain.bounds
 
     ### ALGORITHMS ###
+    # model_fitter = LazyFitter(;
+    #     model_fitter = OptimizationMAP(;
+    #         algorithm = NEWUOA(),
+    #         multistart = 1, # only a single optimization run
+    #         parallel = parallel(),
+    #         rhoend = 1e-4,
+    #     )
+    #     data_ratio = 5/3, # only fit once (new_data / old_data >= 5/3)
+    # )
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
-        multistart = 24,
+        multistart = 1, # only a single optimization run
         parallel = parallel(),
         rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
-        multistart = 24,
+        multistart = 1, # only a single optimization run
         parallel = parallel(),
         rhoend = 1e-4,
     )

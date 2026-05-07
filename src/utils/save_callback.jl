@@ -53,6 +53,19 @@ function (cb::SaveCallback)(problem::BosipProblem; first, model_fitter, acq_maxi
         end
     end
 
+    # convergence callback
+    if !isempty(options.callback.callback.callbacks)
+        for callback in options.callback.callback.callbacks
+            if callback isa ConvergenceCallback
+                save(cb.dir * "/" * cb.filename * "_convergence.jld2", Dict(
+                    "score" => callback.score_history,
+                    "convergence_callback" => callback,
+                ))
+                break
+            end
+        end
+    end
+
     # iters data
     @warn "NOT SAVING _iters.jld2 DATA"
     # if first && cb.continued

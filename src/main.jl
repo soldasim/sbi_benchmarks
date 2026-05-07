@@ -16,22 +16,41 @@ Random.seed!(555)
 
 parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
-include(pwd() * "/src/include_code.jl")
+include("include_code.jl")
 
 ### START A NEW RUN ###
 function main(problem::AbstractProblem; data=nothing, kwargs...)
     ### SETTINGS ###
     init_data_count = 3 # TODO
 
+    # # TODO ###
+    # @warn "TESTING INIT DATA"
+    # @assert problem isa ABProblem
+    # # X, Y = load("data/SIRProblem/grads_1_data.jld2")["data"]
+    # X = load_init_data(ABProblem(), 4)
+    # data = X
+
     ### INIT DATA ###
     if isnothing(data)
-        data = get_init_data(problem, init_data_count)
+        if hasproperty(problem, :gradients) && problem.gradients
+            data = get_init_data_with_grads(problem, init_data_count)
+        else
+            data = get_init_data(problem, init_data_count)
+        end
     else
         @assert data isa AbstractMatrix{<:Real}
         sim = simulator(problem)
-        X = data
-        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
-        data = BOSS.ExperimentData(X, Y)
+        if hasproperty(problem, :gradients) && problem.gradients
+            X = data
+            results = [sim(x) for x in eachcol(X)]
+            Y = hcat([r[1] for r in results]...)
+            J = cat([r[2] for r in results]...; dims=3)
+            data = BOSS.GradientData(X, Y, J)
+        else
+            X = data
+            Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
+            data = BOSS.ExperimentData(X, Y)
+        end
     end
 
     # ### domain mean as only initial point
@@ -66,6 +85,16 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
     #     noise_std_model = get_noise_std_priors(problem),
     # )
     
+    # @warn "TESTING HIGH GRADIENT NOISE STD"
+    # model = GradientGaussianProcess(;
+    #     mean = prior_mean(problem),
+    #     kernel = BOSS.Matern52Kernel(),
+    #     lengthscale_priors = get_lengthscale_priors(problem),
+    #     amplitude_priors = get_amplitude_priors(problem),
+    #     noise_std_priors = get_noise_std_priors(problem),
+    #     grad_noise_std_priors = get_grad_noise_std_priors(problem),
+    # )
+
     
     ### ACQUISITION ###
     # acquisition = MaxVar()
@@ -97,6 +126,7 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
         model,
     )
 
+    # TODO ###
     iters = 100 # TODO
     data_max = size(data.X, 2) + iters
 
@@ -104,40 +134,41 @@ function main(problem::AbstractProblem; data=nothing, kwargs...)
 end
 
 ### CONTINUE A RUN ###
-function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; kwargs...)
-    # # check the filename just to be sure
-    # fname = basename(@__FILE__)
-    # fname_split = split(fname, ['.', '_'])
-    # @assert length(fname_split) == 3
-    # @assert fname_split[2] == run_name
+# function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; kwargs...)
+#     # # check the filename just to be sure
+#     # fname = basename(@__FILE__)
+#     # fname_split = split(fname, ['.', '_'])
+#     # @assert length(fname_split) == 3
+#     # @assert fname_split[2] == run_name
 
-    # load the saved BOSIP problem
-    if isnothing(run_idx)
-        file = joinpath(data_dir(problem), "$(run_name)_problem.jld2")
-    else
-        file = joinpath(data_dir(problem), "$(run_name)_$(run_idx)_problem.jld2")
-    end
-    bosip = load(file)["problem"]
-    @assert bosip isa BosipProblem
+#     # load the saved BOSIP problem
+#     if isnothing(run_idx)
+#         file = joinpath(data_dir(problem), "$(run_name)_problem.jld2")
+#     else
+#         file = joinpath(data_dir(problem), "$(run_name)_$(run_idx)_problem.jld2")
+#     end
+#     bosip = load(file)["problem"]
+#     @assert bosip isa BosipProblem
 
-    # estimator
-    estimator = log_posterior_mean
-    # estimator = log_approx_posterior
-    @warn "using posterior estimator: $(estimator |> nameof |> string)"
+#     # estimator
+#     estimator = log_posterior_mean
+#     # estimator = log_approx_posterior
+#     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
-    # assert iters
-    data_count = size(bosip.problem.data.X, 2)
-    # @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + 10 # TODO
+#     # assert iters
+#     data_count = size(bosip.problem.data.X, 2)
+#     @assert data_count >= 3 + 100 # TODO
+#     data_max = 3 + 200 # TODO
 
-    # continue
-    return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
-end
+#     # continue
+#     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
+# end
 
 function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function;
     run_name = "test",
     save_data = false,
     metric = false,
+    convergence = false,
     plots = false,
     run_idx = nothing,
     continued = false,
@@ -146,15 +177,30 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     bounds = bosip.problem.domain.bounds
 
     ### ALGORITHMS ###
+    # TODO lazy fitter
+    # model_fitter = LazyFitter(;
+    #     model_fitter = OptimizationMAP(;
+    #         algorithm = NEWUOA(),
+    #         multistart = 1, # TODO
+    #         parallel = parallel(),
+    #         rhoend = 1e-4,
+    #     ),
+    #     # TODO
+    #     # data_limit = 10,
+    #     data_ratio = 5/3,
+    # )
+
+    @warn "Using warm starts for the model fitting."
     model_fitter = OptimizationMAP(;
         algorithm = NEWUOA(),
-        multistart = 24,
+        multistart = 2, # TODO
+        warm_start = true,
         parallel = parallel(),
         rhoend = 1e-4,
     )
     acq_maximizer = OptimizationAM(;
         algorithm = BOBYQA(),
-        multistart = 24,
+        multistart = 2, # TODO
         parallel = parallel(),
         rhoend = 1e-4,
     )
@@ -197,9 +243,6 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
 
     
     ### PERFORMANCE METRIC ###
-    xs = rand(bosip.x_prior, 20 * 10^x_dim(problem))
-    ws = exp.( (0.) .- logpdf.(Ref(bosip.x_prior), eachcol(xs)) )
-
     # The initialization of the metric may take some time.
     # (in case the reference is being pre-calculated)
     if metric
@@ -212,10 +255,11 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
         #     algorithm = BOBYQA(),
         #     rhoend = 1e-4,
         # )
+        grid_data = load_grid(problem)
         metric_ = TVMetric(;
-            grid = xs,
-            ws = ws,
-            true_logpost = true_logpost(problem),
+            grid = grid_data.xs,
+            log_ws = grid_data.log_ws,
+            true_logvals = grid_data.true_logvals,
         )
 
         # Get a reference appropriate for the used metric is available.
@@ -239,11 +283,27 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
             )
         end
     end
-
+    ### CONVERGENCE CALLBACK ###
+    if convergence
+        @info "Creating convergence callback..."
+        try
+            conv_data = load_simulator_grid(problem)
+            conv_cb = ConvergenceCallback(;
+                convergence_metric = l2_norm,
+                xs = conv_data.xs,
+                log_ws = conv_data.log_ws,
+                true_sim_outputs = conv_data.sim_outputs,
+            )
+            @info "Convergence callback created successfully"
+        catch e
+            @warn "Failed to create convergence callback: $e"
+            convergence = false
+        end
+    end
     # first callback in `callbacks` (this is important for `SaveCallback`)
     callbacks = BosipCallback[]
     metric && push!(callbacks, metric_cb)
-
+    convergence && push!(callbacks, conv_cb)
 
     ### PLOTS ###
     plot_cb = PlotModule.PlotCB(;

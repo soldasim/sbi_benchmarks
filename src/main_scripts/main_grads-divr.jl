@@ -1,4 +1,4 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### with Gradients and dIVR acquisition
 
 using BOSS
 using BOSIP
@@ -22,18 +22,22 @@ include(pwd() * "/src/include_code.jl")
 
 ### START A NEW RUN ###
 function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
+    problem = set_gradients(problem, true)
+
     ### SETTINGS ###
     init_data_count = 3 # TODO
 
     ### INIT DATA ###
     if isnothing(data)
-        data = get_init_data(problem, init_data_count)
+        data = get_init_data_with_gradients(problem, init_data_count)
     else
         @assert data isa AbstractMatrix{<:Real}
         sim = simulator(problem)
         X = data
-        Y = reduce(hcat, (sim(x) for x in eachcol(X)))[:,:]
-        data = BOSS.ExperimentData(X, Y)
+        results = [sim(x) for x in eachcol(X)]
+        Y = hcat([r[1] for r in results]...)
+        J = cat([r[2] for r in results]...; dims=3)
+        data = BOSS.GradientData(X, Y, J)
     end
 
     # ### domain mean as only initial point
@@ -49,29 +53,37 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
-    model = GaussianProcess(;
-        mean = prior_mean(problem),
-        kernel = BOSS.Matern52Kernel(),
-        lengthscale_priors = get_lengthscale_priors(problem),
-        amplitude_priors = get_amplitude_priors(problem),
-        noise_std_priors = get_noise_std_priors(problem),
-    )
+    # model = GaussianProcess(;
+    #     mean = prior_mean(problem),
+    #     kernel = BOSS.Matern52Kernel(),
+    #     lengthscale_priors = get_lengthscale_priors(problem),
+    #     amplitude_priors = get_amplitude_priors(problem),
+    #     noise_std_priors = get_noise_std_priors(problem),
+    # )
     # model = NonstationaryGP(;
     #     mean = prior_mean(problem),
     #     lengthscale_model = BOSS.default_lengthscale_model(domain(problem).bounds, y_dim(problem)),
     #     amplitude_model = get_amplitude_priors(problem),
     #     noise_std_model = get_noise_std_priors(problem),
     # )
+    model = GradientGaussianProcess(;
+        mean = prior_mean(problem),
+        kernel = BOSS.Matern52Kernel(),
+        lengthscale_priors = get_lengthscale_priors(problem),
+        amplitude_priors = get_amplitude_priors(problem),
+        noise_std_priors = get_noise_std_priors(problem),
+        grad_noise_std_priors = get_grad_noise_std_priors(problem),
+    )
     
     
     ### ACQUISITION ###
     # acquisition = MaxVar()
-    acquisition = LogMaxVar()
+    # acquisition = LogMaxVar()
     # acquisition = IMMD(;
     #     y_samples = 20,
     #     x_samples = 2 * 10^x_dim(problem),
@@ -89,6 +101,9 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     #     x_samples = 2 * 10^x_dim(problem),
     #     x_proposal = x_prior(problem),
     # )
+    acquisition = dIVRAcquisition(;
+        n_grid = 2 * 10^x_dim(problem),
+    )
 
     
     ### BOSIP PROBLEM ###
@@ -106,35 +121,35 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 end
 
 ### CONTINUE A RUN ###
-function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; iters=200, kwargs...)
-    # # check the filename just to be sure
-    # fname = basename(@__FILE__)
-    # fname_split = split(fname, ['.', '_'])
-    # @assert length(fname_split) == 3
-    # @assert fname_split[2] == run_name
+# function main_continue(problem::AbstractProblem, run_name::String, run_idx::Union{Nothing, Int}; iters=200, kwargs...)
+#     # # check the filename just to be sure
+#     # fname = basename(@__FILE__)
+#     # fname_split = split(fname, ['.', '_'])
+#     # @assert length(fname_split) == 3
+#     # @assert fname_split[2] == run_name
 
-    # load the saved BOSIP problem
-    if isnothing(run_idx)
-        file = joinpath(data_dir(problem), "$(run_name)_problem.jld2")
-    else
-        file = joinpath(data_dir(problem), "$(run_name)_$(run_idx)_problem.jld2")
-    end
-    bosip = load(file)["problem"]
-    @assert bosip isa BosipProblem
+#     # load the saved BOSIP problem
+#     if isnothing(run_idx)
+#         file = joinpath(data_dir(problem), "$(run_name)_problem.jld2")
+#     else
+#         file = joinpath(data_dir(problem), "$(run_name)_$(run_idx)_problem.jld2")
+#     end
+#     bosip = load(file)["problem"]
+#     @assert bosip isa BosipProblem
 
-    # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
-    @warn "using posterior estimator: $(estimator |> nameof |> string)"
+#     # estimator
+#     estimator = log_posterior_mean
+#     # estimator = log_approx_posterior
+#     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
-    # assert iters
-    data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100 # TODO
-    data_max = 3 + iters # TODO
+#     # assert iters
+#     data_count = size(bosip.problem.data.X, 2)
+#     @assert data_count >= 3 + 100 # TODO
+#     data_max = 3 + iters # TODO
 
-    # continue
-    return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
-end
+#     # continue
+#     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)
+# end
 
 function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function;
     run_name = "test",

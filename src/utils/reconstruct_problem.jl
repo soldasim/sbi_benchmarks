@@ -10,6 +10,10 @@ function reconstruct_problem(problem_name::AbstractString)
         x_dim = parse(Int, split(problem_name, "GaussProblem")[2])
         return GaussProblem(; x_dim)
     end
+    if startswith(problem_name, "MeanGauss")
+        x_dim = parse(Int, split(problem_name, "MeanGauss")[2])
+        return MeanGauss(; x_dim)
+    end
     
     return getfield(Main, Symbol(problem_name))()
 end

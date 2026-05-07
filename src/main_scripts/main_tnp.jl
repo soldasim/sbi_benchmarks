@@ -1,4 +1,4 @@
-### The setup for using the `log_approx_posterior` estimator instead of the `log_posterior_mean`.
+### The default setup.
 
 using BOSS
 using BOSIP
@@ -19,6 +19,26 @@ Random.seed!(555)
 parallel() = false # PRIMA.jl causes StackOverflow when parallelized on Linux
 
 include(pwd() * "/src/include_code.jl")
+
+# load the TNP model
+using PyCall
+include("../tnp_py.jl")
+
+# utils
+function get_input_transform(bounds)
+    lb, ub = bounds
+    diffs = ub .- lb
+
+    # scale to [-1, 1]
+    t(x) = 2 .* (x .- lb) ./ diffs .- 1
+    return InputTransform(t)
+end
+function get_output_transform(est_amplitude::AbstractVector{<:Real})
+    # scale approximately to [-1, 1]
+    forward_maps = [(y_, std_) -> (y_, std_) .* α for α in est_amplitude]
+    backward_maps = [y -> y / α for α in est_amplitude]
+    return SlicedOutputTransform(forward_maps, backward_maps)
+end
 
 ### START A NEW RUN ###
 function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
@@ -49,24 +69,16 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
 
 
     ### SURROGATE MODEL ###
-    model = GaussianProcess(;
-        mean = prior_mean(problem),
-        kernel = BOSS.Matern52Kernel(),
-        lengthscale_priors = get_lengthscale_priors(problem),
-        amplitude_priors = get_amplitude_priors(problem),
-        noise_std_priors = get_noise_std_priors(problem),
+    model = TransformedModel(;
+        base_model = TNP(),
+        input_transform = get_input_transform(domain(problem).bounds),
+        output_transform = get_output_transform(est_amplitude(problem)),
     )
-    # model = NonstationaryGP(;
-    #     mean = prior_mean(problem),
-    #     lengthscale_model = BOSS.default_lengthscale_model(domain(problem).bounds, y_dim(problem)),
-    #     amplitude_model = get_amplitude_priors(problem),
-    #     noise_std_model = get_noise_std_priors(problem),
-    # )
     
     
     ### ACQUISITION ###
@@ -99,7 +111,6 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
         model,
     )
 
-
     data_max = size(data.X, 2) + iters
 
     return main(problem, bosip, estimator; data_max, kwargs...)
@@ -123,8 +134,8 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @assert bosip isa BosipProblem
 
     # estimator
-    # estimator = log_posterior_mean
-    estimator = log_approx_posterior
+    estimator = log_posterior_mean
+    # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters

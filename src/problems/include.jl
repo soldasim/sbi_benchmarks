@@ -5,6 +5,7 @@ include("ab.jl")
 include("ab_log.jl")
 include("ab_abs.jl")
 include("gauss.jl")
+include("mean_gauss.jl")
 
 # SBIBM
 ### SIR reimplemented in the "physical" problems section

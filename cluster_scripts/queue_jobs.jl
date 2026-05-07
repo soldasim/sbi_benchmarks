@@ -6,6 +6,7 @@ function queue_jobs(problem::AbstractProblem, run_name::String;
     selected_runs = nothing,
     continued = false,
     iters = 100,
+    noise = "nothing",
 )
     pname = get_name(problem)
 
@@ -28,9 +29,22 @@ function queue_jobs(problem::AbstractProblem, run_name::String;
         job_name = "$(pname)_$(run_name)_$(run_idx)"
         job_name = continued ? job_name * "_cont" : job_name
         cont = continued ? 1 : 0
-        device = "cpulong" # TODO "cpu"
-        Base.run(`sbatch -p $device --mem=12G --job-name=$job_name cluster_scripts/run.sh $pname $run_name $run_idx $cont $iters`)
+        device = "cpu" # TODO "cpu"
+
+        endswith(run_name, "noise") || @assert (noise == "nothing") # sanity check
+        Base.run(`sbatch -p $device --mem=12G --job-name=$job_name cluster_scripts/run.sh $pname $run_name $run_idx $cont $iters $noise`)
     end
 
     nothing
+end
+
+function queue_a_lot()
+    for d in 1:6
+        queue_jobs(MeanGauss(; x_dim=d), "standard-warm"; selected_runs=collect(1:5), iters=1000)
+        queue_jobs(MeanGauss(; x_dim=d), "grads-warm"; selected_runs=collect(1:5), iters=1000)
+    end
+    for d in 1:3
+        queue_jobs(MultidimProblem(ABProblem(), d), "standard-warm"; selected_runs=collect(1:5), iters=1000)
+        queue_jobs(MultidimProblem(ABProblem(), d), "grads-warm"; selected_runs=collect(1:5), iters=1000)
+    end
 end

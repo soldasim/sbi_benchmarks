@@ -7,10 +7,7 @@
 # ARGS[3] = run_idx: The index of this particular run. The starting data are selected based on this.
 # ARGS[4] = continue: 0 or 1, whether to continue a previous run (1) or start a new one (0).
 # ARGS[5] = iters: The number of iterations to run.
+# ARGS[6] = noise: The noise hyperparameter to use. Only used for "...-noise" runs.
 
 # start julia
-julia -e "
-    using Pkg
-    Pkg.activate(\"src/\")
-    include(\"cluster_scripts/script.jl\")
-" $1 $2 $3 $4 $5
+julia --project=src cluster_scripts/script.jl $1 $2 $3 $4 $5 $6
