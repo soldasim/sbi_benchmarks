@@ -48,3 +48,12 @@ function queue_a_lot()
         queue_jobs(MultidimProblem(ABProblem(), d), "grads-warm"; selected_runs=collect(1:5), iters=1000)
     end
 end
+
+function queue_uniform_jobs(; selected_runs=collect(1:5), iters=1000)
+    for d in 1:6
+        queue_jobs(MeanGauss(; x_dim=d), uniform; selected_runs, iters)
+    end
+    for d in 1:3
+        queue_jobs(MultidimProblem(ABProblem(), d), uniform; selected_runs, iters)
+    end
+end

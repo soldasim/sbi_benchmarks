@@ -9,5 +9,8 @@
 # ARGS[5] = iters: The number of iterations to run.
 # ARGS[6] = noise: The noise hyperparameter to use. Only used for "...-noise" runs.
 
+# ensure juliaup julia is in PATH
+export PATH="$HOME/.juliaup/bin:$PATH"
+
 # start julia
 julia --project=src cluster_scripts/script.jl $1 $2 $3 $4 $5 $6

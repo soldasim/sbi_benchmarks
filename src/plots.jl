@@ -53,7 +53,9 @@ function get_run_label(abbr::AbstractString)
     # ])
     # return get(group_labels, abbr, abbr)
 
-    if occursin("standard", abbr)
+    if occursin("uniform", abbr)
+        return "uniform (random)"
+    elseif occursin("standard", abbr)
         return "without gradients"
     elseif occursin("grads", abbr)
         return "with gradients"
