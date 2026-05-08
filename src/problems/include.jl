@@ -7,6 +7,9 @@ include("ab_abs.jl")
 include("gauss.jl")
 include("mean_gauss.jl")
 
+# 1D analytical (for MultidimProblem convergence scaling)
+include("analytical1d/include.jl")
+
 # SBIBM
 ### SIR reimplemented in the "physical" problems section
 # include("sbibm/sir_det/sir.jl")
