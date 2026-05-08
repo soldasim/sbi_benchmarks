@@ -427,6 +427,7 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     max_iters = typemax(Int),
     plot_individual_runs = false,
     metric = :tv,
+    plotted_groups = nothing,
 )
     @info "Plotting results for problems: $(get_name.(problems))"
     ################
@@ -455,7 +456,7 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     # plotted_groups = ["standard", "grads"]
     # plotted_groups = ["standard", "grads", "standard-lazy", "grads-lazy", "standard-lazy53x", "grads-lazy53x", "standard-lazy53x-singlerun", "grads-lazy53x-singlerun"]
     # plotted_groups = ["standard", "grads", "standard-lazy", "grads-lazy", "standard-warm", "grads-warm"]
-    plotted_groups = ["standard-warm", "grads-warm"]
+    plotted_groups = isnothing(plotted_groups) ? ["standard-warm", "grads-warm"] : plotted_groups
 
     # a list of all groups is needed to keep plot colors consistent
     colors = Makie.wong_colors()
