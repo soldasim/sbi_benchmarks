@@ -10,8 +10,10 @@ component g(t) = ½(t⁴ − 16t² + 5t) has two local minima at t ≈ −2.903
 (g ≈ −39.17, global) and t ≈ 2.747 (g ≈ −25.1). This separable structure
 means the response surface has 2^d local minima in d dimensions.
 
-With z_obs = 0 and Gaussian likelihood, the posterior is multimodal — the
-level set {f(x) ≈ 0} crosses multiple basins — making this a good benchmark
+For d=2, the four modes of f are at approximately (−2.90,−2.90) → y≈−78.3,
+(−2.90,+2.75)/(+2.75,−2.90) → y≈−64.2, and (+2.75,+2.75) → y≈−50.2.
+With z_obs = −60 and std_obs = 8, the likelihood balances the contributions
+from all four modes, producing a clearly multimodal posterior. Good benchmark
 for testing acquisition functions on multimodal posteriors and for illustrating
 how a non-injective proxy (e.g. modeling |y| instead of y) loses information.
 """
@@ -34,8 +36,8 @@ import ..est_grad_noise_std; import ..true_f; import ..reference_samples; import
 
 using BOSS; using BOSIP; using Distributions
 
-const z_obs   = [0.0]
-const std_obs = [5.0]
+const z_obs   = [-60.0]
+const std_obs = [8.0]
 
 # --- API ---
 

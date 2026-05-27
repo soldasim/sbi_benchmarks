@@ -3,21 +3,23 @@
 
 A d-dimensional problem with the Michalewicz simulator.
 
-Simulator: y = −Σᵢ₌₁ᵈ sin(xᵢ) sin²ᵐ(i⋅xᵢ/π)  (scalar output)
+Simulator: y = −Σᵢ₌₁ᵈ sin(xᵢ) sin²ᵐ(i⋅xᵢ²/π)  (scalar output)
 
 The steepness parameter m (default 10) controls how sharp the ridges are.
-Higher m produces narrower, more needle-like peaks. The function has d! local
-minima in d dimensions. Each dimension's contribution varies in frequency
-(proportional to i), so the response surface is highly heterogeneous — fine
-structure at high-index dimensions, broader structure at low-index dimensions.
+Higher m produces narrower, more needle-like peaks. Peaks occur where
+i·xᵢ²/π = π/2 + nπ, i.e. xᵢ = π√((2n+1)/(2i)), giving multiple local
+minima per dimension. Each dimension contributes independently but with
+different frequencies (proportional to i), so the response surface is highly
+heterogeneous — fine structure at high-index dimensions, broader structure
+at low-index dimensions.
 
-This extreme gradient heterogeneity (gradients near zero almost everywhere,
-huge near the peaks) violates GP stationarity assumptions severely. It serves
-as a strong test case for proxy smoothing (e.g. a log transform to compress
-the dynamic range) and for nonstationary surrogate models.
+This extreme gradient heterogeneity violates GP stationarity assumptions
+severely. It serves as a strong test case for proxy smoothing and nonstationary
+surrogate models.
 
-With z_obs = −1.0 and small Gaussian noise, the posterior concentrates near
-the deepest peaks of the function.
+For d=2, the two deepest modes are at approximately (2.22, 1.57) with
+f ≈ −1.79 and (2.22, 2.72) with f ≈ −1.20. With z_obs = −1.5 and
+std_obs = 0.3, the posterior is bimodal with roughly equal weights on both.
 """
 @kwdef struct MichalewiczProblem <: AbstractProblem
     gradients::Bool = false
@@ -39,8 +41,8 @@ import ..est_grad_noise_std; import ..true_f; import ..reference_samples; import
 
 using BOSS; using BOSIP; using Distributions
 
-const z_obs   = [-1.0]
-const std_obs = [0.2]
+const z_obs   = [-1.5]
+const std_obs = [0.3]
 
 # --- API ---
 
@@ -60,7 +62,7 @@ function _f(x, m)
     d = length(x)
     y = 0.0
     for i in 1:d
-        y -= sin(x[i]) * sin(i * x[i] / π)^(2*m)
+        y -= sin(x[i]) * sin(i * x[i]^2 / π)^(2*m)
     end
     return [y]
 end
@@ -71,10 +73,10 @@ function _J(x, m)
     for i in 1:d
         s  = sin(x[i])
         c  = cos(x[i])
-        si = sin(i * x[i] / π)
-        ci = cos(i * x[i] / π)
-        # d/dxᵢ [ -sin(xᵢ) sin²ᵐ(i xᵢ/π) ]
-        J[1, i] = -(c * si^(2*m) + s * 2*m * si^(2*m - 1) * ci * (i / π))
+        si = sin(i * x[i]^2 / π)
+        ci = cos(i * x[i]^2 / π)
+        # d/dxᵢ [ -sin(xᵢ) sin²ᵐ(i xᵢ²/π) ]
+        J[1, i] = -(c * si^(2*m) + s * 2*m * si^(2*m - 1) * ci * (2*i*x[i] / π))
     end
     return J
 end
