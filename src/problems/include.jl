@@ -10,6 +10,9 @@ include("mean_gauss.jl")
 # 1D analytical (for MultidimProblem convergence scaling)
 include("analytical1d/include.jl")
 
+# Optimization test functions (for proxy variable and acquisition function review experiments)
+include("opt_functions/include.jl")
+
 # SBIBM
 ### SIR reimplemented in the "physical" problems section
 # include("sbibm/sir_det/sir.jl")
