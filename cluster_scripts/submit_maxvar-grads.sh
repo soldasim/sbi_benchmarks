@@ -1,0 +1,25 @@
+#!/bin/bash
+# Submit maxvar-grads benchmark jobs (MeanGauss d=1-6, MultidimAB scaleup=1-3, 5 runs each)
+# Run from ~/repos/bosip_benchmarks
+
+cd ~/repos/bosip_benchmarks
+
+for d in 1 2 3 4 5 6; do
+    pname="MeanGauss${d}"
+    for run_idx in 1 2 3 4 5; do
+        job_name="${pname}_maxvar-grads_${run_idx}"
+        echo "Submitting $job_name ..."
+        sbatch -p cpu --mem=12G --job-name="$job_name" cluster_scripts/run.sh "$pname" maxvar-grads "$run_idx" 0 1000 nothing
+    done
+done
+
+for scaleup in 1 2 3; do
+    pname="MultidimProblem{ABProblem}${scaleup}"
+    for run_idx in 1 2 3 4 5; do
+        job_name="MultidimAB${scaleup}_maxvar-grads_${run_idx}"
+        echo "Submitting $job_name ..."
+        sbatch -p cpu --mem=12G --job-name="$job_name" cluster_scripts/run.sh "$pname" maxvar-grads "$run_idx" 0 1000 nothing
+    done
+done
+
+echo "Done. 45 jobs submitted."
