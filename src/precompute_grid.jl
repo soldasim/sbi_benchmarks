@@ -28,6 +28,9 @@ _grid_size(problem::AbstractProblem) = 20 * 10^x_dim(problem)
 _grid_size(problem::MultidimProblem) = 20_000
 _grid_size(problem::GaussProblem) = 20_000
 _grid_size(problem::MeanGauss) = 20_000
+_grid_size(problem::RosenbrockProblem) = 20_000
+_grid_size(problem::StyblinskiTangProblem) = 20_000
+_grid_size(problem::MichalewiczProblem) = 20_000
 
 function precompute_grid(problem::AbstractProblem)
     @info "Precomputing all grids for $(typeof(problem))"
