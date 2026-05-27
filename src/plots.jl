@@ -55,6 +55,10 @@ function get_run_label(abbr::AbstractString)
 
     if occursin("uniform", abbr)
         return "uniform (random)"
+    elseif abbr == "maxvar"
+        return "MaxVar"
+    elseif abbr == "eiv"
+        return "EIV"
     elseif occursin("standard", abbr)
         return "without gradients"
     elseif occursin("grads", abbr)
