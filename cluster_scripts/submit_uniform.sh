@@ -29,11 +29,14 @@ echo "Done. Total 45 jobs submitted."
 # New 1D analytical problems (SquareProblem, SineProblem, CubicProblem), dims 1-6
 for base in SquareProblem SineProblem CubicProblem; do
     for scaleup in 1 2 3 4 5 6; do
-        pname="MultidimProblem{}"
+        pname=MultidimProblem{}
         for run_idx in 1 2 3 4 5; do
-            job_name="_uniform_"
-            echo "Submitting $job_name ..."
-            sbatch -p cpu --mem=12G --job-name="$job_name" cluster_scripts/run.sh "$pname" uniform "$run_idx" 0 1000 nothing
+            shortname=
+            job_name=_d_uniform_
+            echo Submitting ...
+            sbatch -p cpu --mem=12G --job-name= cluster_scripts/run.sh  uniform  0 1000 nothing
         done
     done
 done
+
+echo Done. New analytical problems submitted.

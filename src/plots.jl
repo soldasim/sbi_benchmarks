@@ -274,8 +274,11 @@ function plot_results(; save_plot=false, base_fontsize=20, kwargs...)
     #     MultidimProblem(SimpleProblem(), 1)     MultidimProblem(SimpleProblem(), 2)     MultidimProblem(SimpleProblem(), 3)     MultidimProblem(SimpleProblem(), 4)     MultidimProblem(SimpleProblem(), 5)
     # ]
     problems = [
-        :legend         MultidimProblem(ABProblem(), 1)     :nothing     MultidimProblem(ABProblem(), 2)     :nothing     MultidimProblem(ABProblem(), 3)
-        MeanGauss(;x_dim=1)    MeanGauss(;x_dim=2)    MeanGauss(;x_dim=3)    MeanGauss(;x_dim=4)    MeanGauss(;x_dim=5)    MeanGauss(;x_dim=6)
+        :legend              MultidimProblem(ABProblem(), 1)              :nothing                            MultidimProblem(ABProblem(), 2)              :nothing                            MultidimProblem(ABProblem(), 3)
+        MeanGauss(;x_dim=1)  MeanGauss(;x_dim=2)                          MeanGauss(;x_dim=3)                 MeanGauss(;x_dim=4)                          MeanGauss(;x_dim=5)                 MeanGauss(;x_dim=6)
+        MultidimProblem(SquareProblem(), 1)  MultidimProblem(SquareProblem(), 2)  MultidimProblem(SquareProblem(), 3)  MultidimProblem(SquareProblem(), 4)  MultidimProblem(SquareProblem(), 5)  MultidimProblem(SquareProblem(), 6)
+        MultidimProblem(SineProblem(), 1)    MultidimProblem(SineProblem(), 2)    MultidimProblem(SineProblem(), 3)    MultidimProblem(SineProblem(), 4)    MultidimProblem(SineProblem(), 5)    MultidimProblem(SineProblem(), 6)
+        MultidimProblem(CubicProblem(), 1)   MultidimProblem(CubicProblem(), 2)   MultidimProblem(CubicProblem(), 3)   MultidimProblem(CubicProblem(), 4)   MultidimProblem(CubicProblem(), 5)   MultidimProblem(CubicProblem(), 6)
     ]
 
     nrows, ncols = size(problems)
@@ -570,6 +573,12 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
         if startswith(group, "grads")
             color = color_map["grads"]
         end
+        if startswith(group, "uniform")
+            color = occursin("grads", group) ? color_map["grads"] : color_map["standard"]
+        end
+        if startswith(group, "maxvar")
+            color = occursin("grads", group) ? color_map["grads"] : color_map["maxvar"]
+        end
         ### fallback colors
         @assert !isnothing(color)
 
@@ -640,7 +649,16 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
             slope, init_end_idx, learning_end_idx, init_x, learning_end_x, region_strength = compute_convergence_slope(xs[eachindex(median_scores)], median_scores)
             @info "Computed slope for $group: linear_start=$init_x, linear_end=$learning_end_x (indices $init_end_idx to $learning_end_idx, region_strength=$region_strength)"
             # Store slope by base group (without modifiers like -warm-noise)
-            base_group = split(group, "-")[1]  # Get "standard" or "grads"
+            # Preserve compound names like uniform-grads; strip only trailing modifiers like -warm, -noise=...
+            base_group = if startswith(group, "uniform-grads")
+                "uniform-grads"
+            elseif startswith(group, "uniform")
+                "uniform"
+            elseif startswith(group, "grads")
+                "grads"
+            else
+                split(group, "-")[1]
+            end
             slopes_by_base_group[base_group] = slope
             # Store phase boundaries (start and end of linear region) plus region strength
             phase_ranges_by_base_group[base_group] = (init_x, learning_end_x, region_strength)
@@ -703,7 +721,11 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     @info "Phase ranges: $phase_ranges_by_base_group"
     for (base_group, (linear_start_x, linear_end_x, region_strength)) in phase_ranges_by_base_group
         if haskey(slopes_by_base_group, base_group)
-            color = get(color_map, base_group, :gray)
+            color = if startswith(base_group, "uniform")
+                occursin("grads", base_group) ? color_map["grads"] : color_map["standard"]
+            else
+                get(color_map, base_group, :gray)
+            end
             @info "Drawing lines for group $base_group: start=$linear_start_x, end=$linear_end_x"
             # Draw line at start of linear phase
             vlines!(ax, [linear_start_x]; color=color, linestyle=:dot, linewidth=3, alpha=0.5)
@@ -713,57 +735,51 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     end
 
     # Display convergence statistics in upper right corner
-    if length(slopes_by_base_group) >= 2 && haskey(slopes_by_base_group, "standard") && haskey(slopes_by_base_group, "grads")
-        slope_std = slopes_by_base_group["standard"]
-        slope_grad = slopes_by_base_group["grads"]
-        
-        # Ratio: grads / standard (in absolute value, more negative = better)
-        # If both are negative (as expected for convergence), ratio < 1 means grads converges faster
-        ratio = slope_grad / slope_std
-        
-        # Compute constant gap over overlapping linear phases
-        gap = nothing
-        if haskey(median_scores_by_base_group, "standard") && haskey(median_scores_by_base_group, "grads") &&
-           haskey(phase_ranges_by_base_group, "standard") && haskey(phase_ranges_by_base_group, "grads")
-            xs_std, ys_std = median_scores_by_base_group["standard"]
-            xs_grads, ys_grads = median_scores_by_base_group["grads"]
-            phase_std = phase_ranges_by_base_group["standard"]
-            phase_grads = phase_ranges_by_base_group["grads"]
-            
-            # Convert integer xs back to continuous values for gap computation
-            gap = compute_constant_gap(xs_std, ys_std, ys_grads, phase_std, phase_grads)
-            
-            # Store the gap result for saving (includes metric info)
-            gap_result = (gap, phase_std, phase_grads, slope_std, slope_grad, ratio, metric)
-        end
-        
-        # Create text for display
-        if !isnothing(gap)
-            text_str = @sprintf("Standard: %.2f\nGrads: %.2f\nRatio: %.2f\nGap: %.2e", slope_std, slope_grad, ratio, gap)
-        else
-            text_str = @sprintf("Standard: %.2f\nGrads: %.2f\nRatio: %.2f", slope_std, slope_grad, ratio)
-        end
-        
-        # Place in upper right corner
-        text!(ax, 0.98, 0.98, text=text_str; align=(:right, :top), space=:relative, 
-              fontsize=11, color=:black)
-    elseif length(slopes_by_base_group) >= 1
-        # If we only have one group, just display its slope
-        if haskey(slopes_by_base_group, "standard")
-            slope = slopes_by_base_group["standard"]
-            text_str = @sprintf("Slope: %.2f", slope)
-        elseif haskey(slopes_by_base_group, "grads")
-            slope = slopes_by_base_group["grads"]
-            text_str = @sprintf("Slope: %.2f", slope)
-        else
-            slope = first(values(slopes_by_base_group))
-            text_str = @sprintf("Slope: %.2f", slope)
-        end
-        
-        text!(ax, 0.98, 0.98, text=text_str; align=(:right, :top), space=:relative, 
-              fontsize=11, color=:black)
+    # Find a no-grads key and a grads key for comparison
+    group_keys = collect(keys(slopes_by_base_group))
+    std_key  = findfirst(k -> !occursin("grads", k), group_keys)
+    grad_key = findfirst(k ->  occursin("grads", k), group_keys)
+
+    group_color(g) = if startswith(g, "uniform")
+        occursin("grads", g) ? color_map["grads"] : color_map["standard"]
+    else
+        get(color_map, occursin("grads", g) ? "grads" : "standard", :gray)
     end
 
+    if length(slopes_by_base_group) >= 2 && !isnothing(std_key) && !isnothing(grad_key)
+        sk = group_keys[std_key]
+        gk = group_keys[grad_key]
+        slope_std = slopes_by_base_group[sk]
+        slope_grad = slopes_by_base_group[gk]
+
+        ratio = slope_grad / slope_std
+
+        gap = nothing
+        if haskey(median_scores_by_base_group, sk) && haskey(median_scores_by_base_group, gk) &&
+           haskey(phase_ranges_by_base_group, sk) && haskey(phase_ranges_by_base_group, gk)
+            xs_std, ys_std = median_scores_by_base_group[sk]
+            xs_grads, ys_grads = median_scores_by_base_group[gk]
+            phase_std = phase_ranges_by_base_group[sk]
+            phase_grads = phase_ranges_by_base_group[gk]
+
+            gap = compute_constant_gap(xs_std, ys_std, ys_grads, phase_std, phase_grads)
+            gap_result = (gap, phase_std, phase_grads, slope_std, slope_grad, ratio, metric)
+        end
+
+        text!(ax, 0.98, 0.98; text=@sprintf("slope: %.2f", slope_std),
+              align=(:right, :top), space=:relative, fontsize=11, color=group_color(sk))
+        text!(ax, 0.98, 0.88; text=@sprintf("slope: %.2f", slope_grad),
+              align=(:right, :top), space=:relative, fontsize=11, color=group_color(gk))
+        ratio_str = isnothing(gap) ? @sprintf("ratio: %.2f", ratio) :
+                                     @sprintf("ratio: %.2f  gap: %.2e", ratio, gap)
+        text!(ax, 0.98, 0.78; text=ratio_str,
+              align=(:right, :top), space=:relative, fontsize=11, color=:black)
+    elseif length(slopes_by_base_group) >= 1
+        gk = first(keys(slopes_by_base_group))
+        slope = slopes_by_base_group[gk]
+        text!(ax, 0.98, 0.98; text=@sprintf("slope: %.2f", slope),
+              align=(:right, :top), space=:relative, fontsize=11, color=group_color(gk))
+    end
     # plot reference opt_mmd values
     if metric == OptMMDMetric
         p = problems[1]
