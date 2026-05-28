@@ -498,15 +498,11 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
         scores_by_group = load_stored_scores(problems, metric_type)
     end
 
-    xticks = ([10^x for x in 0.5:0.5:3.0], [L"10^\mathbf{%$x}" for x in 0.5:0.5:3.0])
-    # yminorticks = CustomLogMinorTicks(1)
-
     ax = Axis(figpos; xlabel="simulations",
         ylabel,
         title,
         xscale,
         yscale,
-        xticks,
         # ygridvisible = false,
         # yminorticks,
         # yminorticksvisible = true,
