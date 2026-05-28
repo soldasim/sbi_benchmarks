@@ -835,6 +835,7 @@ function _get_plot_title(problem::AbstractProblem)
         title *= " $(total_dim_)D"
         @show title
     end
+    return title
 end
 
 plot_name(problems::AbstractVector) = join(plot_name.(problems), "_")
