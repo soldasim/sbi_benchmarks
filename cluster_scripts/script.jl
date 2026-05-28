@@ -24,3 +24,6 @@ if continued
 else
     main(problem; run_name, save_data=true, convergence=true, metric=true, data, run_idx, iters, noise)
 end
+
+# Force exit to avoid hanging in finalizers from native-code libraries (PRIMA/Fortran).
+exit()
