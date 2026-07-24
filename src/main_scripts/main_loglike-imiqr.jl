@@ -244,13 +244,18 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     end
     ### CONVERGENCE CALLBACK ###
     if convergence
-        conv_data = load_simulator_grid(problem)
-        conv_cb = ConvergenceCallback(;
-            convergence_metric = l2_norm,
-            xs = conv_data.xs,
-            log_ws = conv_data.log_ws,
-            true_sim_outputs = conv_data.sim_outputs,
-        )
+        try
+            conv_data = load_simulator_grid(problem)
+            conv_cb = ConvergenceCallback(;
+                convergence_metric = l2_norm,
+                xs = conv_data.xs,
+                log_ws = conv_data.log_ws,
+                true_sim_outputs = conv_data.sim_outputs,
+            )
+        catch e
+            @warn "Failed to create convergence callback: $e"
+            convergence = false
+        end
     end
 
     # first callback in `callbacks` (this is important for `SaveCallback`)
