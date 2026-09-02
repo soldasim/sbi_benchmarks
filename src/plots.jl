@@ -59,6 +59,10 @@ function get_run_label(abbr::AbstractString)
         return "MaxVar"
     elseif abbr == "eiv"
         return "EIV"
+    elseif abbr == "immd"
+        return "IMMD"
+    elseif abbr == "eiig"
+        return "IMMD (old)"
     elseif occursin("standard", abbr)
         return "without gradients"
     elseif occursin("grads", abbr)
@@ -435,6 +439,7 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     plot_individual_runs = false,
     metric = :tv,
     plotted_groups = nothing,
+    compute_slope = true,
 )
     @info "Plotting results for problems: $(get_name.(problems))"
     ################
@@ -467,8 +472,17 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
 
     # a list of all groups is needed to keep plot colors consistent
     colors = Makie.wong_colors()
-    main_groups = ["loglike", "standard", "eiv", "eiig", "nongp", "alt"]
+    main_groups = ["loglike", "standard", "eiv", "eiig", "immd", "nongp", "alt"]
     color_map = Dict(group => colors[i] for (i, group) in enumerate(main_groups))
+    # Canonical paper palette override (2026-08-06): "standard" is yellow, not
+    # colors[2]=orange (orange is reserved for niche custom-proxy plots
+    # elsewhere). "maxvar" isn't in main_groups at all — without this it would
+    # fall through to an arbitrary tab10 fallback color below, so Group B's
+    # cross_all_tv_convergence.png (plotted_groups=["maxvar","eiv"]) wouldn't
+    # match Group A's "standard"=yellow convention. Set both explicitly, before
+    # the fallback loop, so the loop's `!haskey` check skips "maxvar".
+    color_map["standard"] = colors[2]
+    color_map["maxvar"]   = colors[2]
 
     # get some fallback colors for any additional groups
     extra_colors_iter = Iterators.Stateful(Iterators.cycle(Makie.colorschemes[:tab10]))
@@ -512,7 +526,9 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
 
     # Super hacky way to order the data same as in `plotted_groups`
     function prepare_data(problem_group, scores)
-        pname, group = split(problem_group, "_")
+        parts = split(problem_group, "_")
+        group = parts[end]
+        pname = join(parts[1:end-1], "_")
         return pname, group, scores
     end
     plot_data_ = [prepare_data(problem_group, scores) for (problem_group, scores) in scores_by_group]
@@ -645,28 +661,30 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
         lines!(ax, xs[eachindex(median_scores)], median_scores; label, color=color, linestyle=style, linewidth=2)
         
         # Compute convergence slope and phase boundaries
-        try
-            slope, init_end_idx, learning_end_idx, init_x, learning_end_x, region_strength = compute_convergence_slope(xs[eachindex(median_scores)], median_scores)
-            @info "Computed slope for $group: linear_start=$init_x, linear_end=$learning_end_x (indices $init_end_idx to $learning_end_idx, region_strength=$region_strength)"
-            # Store slope by base group (without modifiers like -warm-noise)
-            # Preserve compound names like uniform-grads; strip only trailing modifiers like -warm, -noise=...
-            base_group = if startswith(group, "uniform-grads")
-                "uniform-grads"
-            elseif startswith(group, "uniform")
-                "uniform"
-            elseif startswith(group, "grads")
-                "grads"
-            else
-                split(group, "-")[1]
+        if compute_slope
+            try
+                slope, init_end_idx, learning_end_idx, init_x, learning_end_x, region_strength = compute_convergence_slope(xs[eachindex(median_scores)], median_scores)
+                @info "Computed slope for $group: linear_start=$init_x, linear_end=$learning_end_x (indices $init_end_idx to $learning_end_idx, region_strength=$region_strength)"
+                # Store slope by base group (without modifiers like -warm-noise)
+                # Preserve compound names like uniform-grads; strip only trailing modifiers like -warm, -noise=...
+                base_group = if startswith(group, "uniform-grads")
+                    "uniform-grads"
+                elseif startswith(group, "uniform")
+                    "uniform"
+                elseif startswith(group, "grads")
+                    "grads"
+                else
+                    split(group, "-")[1]
+                end
+                slopes_by_base_group[base_group] = slope
+                # Store phase boundaries (start and end of linear region) plus region strength
+                phase_ranges_by_base_group[base_group] = (init_x, learning_end_x, region_strength)
+                # Store median scores and xs values for later gap computation
+                median_scores_by_base_group[base_group] = (collect(xs[eachindex(median_scores)]), median_scores)
+                @info "Stored phase range for $base_group"
+            catch e
+                @warn "Failed to compute slope for group \"$group\": $e"
             end
-            slopes_by_base_group[base_group] = slope
-            # Store phase boundaries (start and end of linear region) plus region strength
-            phase_ranges_by_base_group[base_group] = (init_x, learning_end_x, region_strength)
-            # Store median scores and xs values for later gap computation
-            median_scores_by_base_group[base_group] = (collect(xs[eachindex(median_scores)]), median_scores)
-            @info "Stored phase range for $base_group"
-        catch e
-            @warn "Failed to compute slope for group \"$group\": $e"
         end
         
         # noise level note
@@ -800,13 +818,25 @@ function plot_result_axis!(figpos::GridPosition, problems::AbstractVector{<:Abst
     end
 
     if legend
-        # axislegend(ax)
-        # axislegend(ax; position=:rt)
-        # axislegend(ax; position=:rc)
-        axislegend(ax; position=:lb)
+        try
+            axislegend(ax; position=:lb)
+        catch
+        end
     end
 
     return ax, gap_result
+end
+
+function _get_plot_title(problem::SharpProblem)
+    return _get_plot_title(problem.base) * " (sharp)"
+end
+
+function _get_plot_title(problem::HexObsProblem)
+    return _get_plot_title(problem.inner) * " (hex)"
+end
+
+function _get_plot_title(problem::CrossPolytopeObsProblem)
+    return _get_plot_title(problem.inner) * " (cross)"
 end
 
 function _get_plot_title(problem::AbstractProblem)
@@ -826,6 +856,10 @@ function _get_plot_title(problem::AbstractProblem)
     elseif title == "SIR"
         @warn "Renaming title for the SIRProblem."
         title = "SIR (without proxy)"
+    elseif title == "BealeProxy"
+        title = "Beale (proxy)"
+    elseif title == "GoldsteinPriceProxy"
+        title = "Goldstein-Price (proxy)"
     elseif title == "Multidim"
         @warn "Renaming title for a Multidim problem."
         base_problem_ = problem.problem

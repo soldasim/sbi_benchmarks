@@ -9,4 +9,4 @@
 # ARGS[5] = estimator: The name of the posterior estimator function. (`log_posterior_mean`, `log_approx_posterior`)
 
 # start julia
-julia --project=src cluster_scripts/script_score.jl $1 $2 $3 $4 $5
+~/.juliaup/bin/julialauncher --project=src cluster_scripts/script_score.jl $1 $2 $3 $4 $5 ${6:-} ${7:-}

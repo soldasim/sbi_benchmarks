@@ -75,7 +75,7 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     # acquisition = LogMaxVar()
     acquisition = IMMD(;
         y_samples = 20,
-        x_samples = 2 * 10^x_dim(problem),
+        x_samples = _acq_samples(problem),
         x_proposal = x_prior(problem),
         y_kernel = BOSS.GaussianKernel(),
         p_kernel = BOSS.GaussianKernel(),

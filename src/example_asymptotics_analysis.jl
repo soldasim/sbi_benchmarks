@@ -9,8 +9,8 @@ to load, analyze, and visualize convergence behavior across dimensions.
 The refactored analytics produces several key visualizations:
 
 **Color scheme throughout:**
-- **Blue**: Gradient-enhanced method (grads-lazy) — typically achieves better (lower) convergence curve
-- **Orange**: Plain method (standard-lazy)
+- **Blue**: Gradient-enhanced method (grads-warm) — typically achieves better (lower) convergence curve
+- **Orange**: Plain method (standard-warm)
 - Lower TV/error = better
 
 ### Main Plot: slope_comparison.png
@@ -73,8 +73,8 @@ Shows measured slope ratios separately for each problem type (SimpleProblem and 
 **Understanding why gradient method wins even when slope ratio < 1:**
 
 Looking at your convergence plots:
-- **Blue = gradient method (grads-lazy)**: achieves **lower TV = better results**
-- **Orange = plain method (standard-lazy)**
+- **Blue = gradient method (grads-warm)**: achieves **lower TV = better results**
+- **Orange = plain method (standard-warm)**
 
 Yet our slope ratio plot shows β_g/β_0 < 1 in some dimensions. This seems paradoxical—how can 
 the gradient method win if it has a lower slope?
@@ -145,7 +145,7 @@ function example_basic_analysis()
     Run basic analysis on experiment data with default settings.
     
     This will:
-    1. Load all "standard-lazy" and "grads-lazy" run data from the data directory
+    1. Load all "standard-warm" and "grads-warm" run data from the data directory
     2. Fit power laws to the convergence curves
     3. Print summary statistics and theory comparisons
     4. Generate comprehensive plots comparing slopes across dimensions with:
@@ -157,12 +157,12 @@ function example_basic_analysis()
     """
     
     # Specify the data directory (should contain subdirectories like MultidimProblem{ABProblem}1, etc.)
-    data_dir = joinpath(@__DIR__, "..", "data")
-    
+    data_dir = joinpath(@__DIR__, "..", "data-convergence4")
+
     if !isdir(data_dir)
         error("Data directory not found: $data_dir")
     end
-    
+
     # Run the main analysis
     # Parameters:
     #   r_c: relative cost ratio (gradient eval cost / value-only eval cost)
@@ -184,16 +184,16 @@ function example_detailed_analysis()
     This provides more control over options and allows custom post-processing.
     """
     
-    data_dir = joinpath(@__DIR__, "..", "data")
-    
+    data_dir = joinpath(@__DIR__, "..", "data-convergence4")
+
     # Step 1: Load data with custom options
     println("\n" * "="^80)
     println("Step 1: Loading experiment data")
     println("="^80)
     
     data = load_experiment_data_by_run(data_dir;
-                                       methods=["standard-lazy", "grads-lazy"],
-                                       expected_runs=20,
+                                       methods=["standard-warm", "grads-warm"],
+                                       expected_runs=5,
                                        rename_methods=true)  # Rename to "plain"/"grad"
     
     # Print loaded data structure
@@ -269,9 +269,9 @@ function example_detailed_analysis()
             
             println("\nDimension $d:")
             println("  Measured slope ratio βg/β0 = $(round(slope_ratio; digits=4))")
-            println("  Plain method (standard-lazy):")
+            println("  Plain method (standard-warm):")
             println("    - Mean slope β = $(round(β_plain_mean; digits=4)) ± $(round(std(β_plain_vals); digits=4))")
-            println("  Grad method (grads-lazy):")
+            println("  Grad method (grads-warm):")
             println("    - Mean slope β = $(round(β_grad_mean; digits=4)) ± $(round(std(β_grad_vals); digits=4))")
             println("  Theoretical predictions:")
             println("    - Asymptotic (Hermite) = $(round(hermite_pred; digits=4))")
@@ -349,6 +349,6 @@ if abspath(PROGRAM_FILE) == @__FILE__
         println("\nMake sure:")
         println("  1. You are in the src directory")
         println("  2. The data directory exists with experiment results")
-        println("  3. Data files are stored as: data/{problem}/{method}_{run_idx}_TVmetric.jld2")
+        println("  3. Data files are stored as: data-convergence4/{problem}/{method}_{run_idx}_TVmetric.jld2")
     end
 end

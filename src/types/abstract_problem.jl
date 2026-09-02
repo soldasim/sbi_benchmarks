@@ -115,6 +115,24 @@ Either `true_f` or `reference_samples` should be defined for each problem.
 true_f(::AbstractProblem) = nothing
 
 """
+    true_params(::AbstractProblem) -> ::AbstractVector{<:Real}
+
+Return the true parameter vector (found by optimization) for the given problem.
+"""
+function true_params end
+
+"""
+    proxy_offset(::AbstractProblem) -> ::Union{Nothing, Float64}
+
+Return the additive offset `C` used in the proxy transformation `δ = log(f + C)`,
+or `nothing` if the problem does not use a log proxy.
+
+Used by `HexObsProblem` to construct the correct 6-output `CustomLikelihood`
+that inverts the proxy for each hex observation independently.
+"""
+proxy_offset(::AbstractProblem) = nothing
+
+"""
     reference_samples(::AbstractProblem) -> ::Union{Nothing, Matrix{Float64}}
 
 Return reference samples from the true parameter posterior for the given problem

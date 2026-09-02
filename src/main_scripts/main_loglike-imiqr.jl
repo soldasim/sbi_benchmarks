@@ -87,11 +87,11 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     # )
     acquisition = IMIQR(;
         p_u = 0.75,
-        x_samples = 2 * 10^x_dim(problem),
+        x_samples = _acq_samples(problem),
         x_proposal = x_prior(problem),
     )
 
-    
+
     ### BOSIP PROBLEM ###
     bosip = construct_bosip_problem(;
         problem,
@@ -244,6 +244,7 @@ function main(problem::AbstractProblem, bosip::BosipProblem, estimator::Function
     end
     ### CONVERGENCE CALLBACK ###
     if convergence
+        local conv_cb
         try
             conv_data = load_simulator_grid(problem)
             conv_cb = ConvergenceCallback(;

@@ -2,3 +2,28 @@ venv/
 slurm-*
 data*
 plots/
+
+# macOS resource-fork junk from sshfs mount
+._*
+
+# Julia environment caches/lockfiles (machine-specific)
+src/.CondaPkg/
+Manifest.toml
+src/Manifest.toml
+LocalPreferences.toml
+src/LocalPreferences.toml
+
+# scratch/output directories, not source
+logs/
+sandbox/
+a_other/
+scratch_approx_vs_mean/
+~/
+
+# stray flag/marker files and one-off inspection outputs
+*.done
+inspect_cubic_output.txt
+inspect_cubic_tv.png
+inspect_uniform_comparison.txt
+hex_all_plot.log
+test_sir_data.jld2

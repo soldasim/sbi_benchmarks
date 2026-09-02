@@ -7,6 +7,7 @@ function queue_jobs(problem::AbstractProblem, run_name::String;
     continued = false,
     iters = 100,
     noise = "nothing",
+    time = nothing,
 )
     pname = get_name(problem)
 
@@ -29,10 +30,14 @@ function queue_jobs(problem::AbstractProblem, run_name::String;
         job_name = "$(pname)_$(run_name)_$(run_idx)"
         job_name = continued ? job_name * "_cont" : job_name
         cont = continued ? 1 : 0
-        device = "cpu" # TODO "cpu"
+        device = "cpu" # TODO "cpu"
 
-        endswith(run_name, "noise") || @assert (noise == "nothing") # sanity check
-        Base.run(`sbatch -p $device --mem=12G --job-name=$job_name cluster_scripts/run.sh $pname $run_name $run_idx $cont $iters $noise`)
+        endswith(run_name, "noise") || @assert (noise == "nothing") # sanity check
+        if isnothing(time)
+            Base.run(`sbatch -p $device --mem=12G --job-name=$job_name cluster_scripts/run.sh $pname $run_name $run_idx $cont $iters $noise`)
+        else
+            Base.run(`sbatch -p $device --mem=12G --time=$time --job-name=$job_name cluster_scripts/run.sh $pname $run_name $run_idx $cont $iters $noise`)
+        end
     end
 
     nothing

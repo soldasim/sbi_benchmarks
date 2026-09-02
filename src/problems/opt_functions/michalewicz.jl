@@ -21,13 +21,14 @@ For d=2, the two deepest modes are at approximately (2.22, 1.57) with
 f ≈ −1.79 and (2.22, 2.72) with f ≈ −1.20. With z_obs = −1.5 and
 std_obs = 0.3, the posterior is bimodal with roughly equal weights on both.
 """
-@kwdef struct MichalewiczProblem <: AbstractProblem
+@kwdef struct MichalewiczProblem <: AbstractOptFunctionProblem
     gradients::Bool = false
     x_dim::Int = 2
     m::Int = 10
+    std_obs::Vector{Float64} = [0.3]
 end
 
-set_gradients(p::MichalewiczProblem, val::Bool) = MichalewiczProblem(val, p.x_dim, p.m)
+set_gradients(p::MichalewiczProblem, val::Bool) = MichalewiczProblem(val, p.x_dim, p.m, p.std_obs)
 
 get_name(p::MichalewiczProblem) = (p |> typeof |> string) * string(p.x_dim)
 
@@ -37,24 +38,30 @@ module MichalewiczProblemModule
 import ..MichalewiczProblem
 import ..simulator; import ..domain; import ..likelihood; import ..prior_mean
 import ..x_prior; import ..est_amplitude; import ..est_noise_std
-import ..est_grad_noise_std; import ..true_f; import ..reference_samples; import ..y_max
+import ..est_grad_noise_std; import ..true_f; import ..true_params; import ..reference_samples; import ..y_max
 
 using BOSS; using BOSIP; using Distributions
 
-const z_obs   = [-1.5]
-const std_obs = [0.3]
+const x_true  = [2.097956, 1.632165]
+const x_true_5 = [2.097956, 1.632165, 1.28, 1.11, 0.99]
 
 # --- API ---
 
 simulator(p::MichalewiczProblem) = p.gradients ? _sim_grads(p.m) : _sim(p.m)
 domain(p::MichalewiczProblem)    = Domain(; bounds = (fill(0.0, p.x_dim), fill(π, p.x_dim)))
-likelihood(::MichalewiczProblem) = NormalLikelihood(; z_obs, std_obs)
-prior_mean(::MichalewiczProblem) = z_obs
+_z_obs(p::MichalewiczProblem) = true_f(p)(true_params(p))
+likelihood(p::MichalewiczProblem) = NormalLikelihood(; z_obs=_z_obs(p), std_obs=p.std_obs)
+prior_mean(p::MichalewiczProblem) = _z_obs(p)
 x_prior(p::MichalewiczProblem)   = Product(fill(Uniform(0.0, π), p.x_dim))
 est_amplitude(::MichalewiczProblem)      = [1.0]
 est_noise_std(::MichalewiczProblem)      = nothing
 est_grad_noise_std(::MichalewiczProblem) = nothing
 true_f(p::MichalewiczProblem)    = _true_f(p.m)
+function true_params(p::MichalewiczProblem)
+    p.x_dim == 2 && return x_true
+    p.x_dim == 5 && return x_true_5
+    error("true_params not defined for $(p.x_dim)D $(typeof(p))")
+end
 
 # --- Simulator ---
 

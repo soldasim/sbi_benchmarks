@@ -82,7 +82,7 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
     # )
     acquisition = EIV(
         y_samples = 20,
-        x_samples = 2 * 10^x_dim(problem),
+        x_samples = _acq_samples(problem),
         x_proposal = x_prior(problem),
     )
     # acquisition = IMIQR(;
@@ -130,7 +130,7 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
 
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100 # TODO
+    @assert data_count > 3 # TODO
     data_max = 3 + iters # TODO
 
     # continue

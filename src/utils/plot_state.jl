@@ -7,7 +7,28 @@ import ..AbstractProblem
 import ..MultidimProblem
 import ..GaussProblem
 import ..MeanGauss
+import ..ABProblem
+import ..SimpleProblem
+import ..BananaProblem
+import ..BimodalProblem
+import ..SIRProblem
+import ..DuffingProblem
+import ..DuffingProblem5
+import ..DiffusionProblem
+import ..DiffusionProblem5D
+import ..ProxySIRProblem
+import ..LogABProblem
+import ..LogSimpleProblem
+import ..LogBananaProblem
+import ..LogBimodalProblem
+import ..LogSIRProblem
+import ..LogDuffingProblem
+import ..LogDiffusionProblem
 import ..reference
+import ..AbstractOptFunctionProblem
+import ..SharpProblem
+import ..HexObsProblem
+import ..CrossPolytopeObsProblem
 
 include("../data_paths.jl")
 

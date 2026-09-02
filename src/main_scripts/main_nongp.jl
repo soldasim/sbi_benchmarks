@@ -50,7 +50,14 @@ function main(problem::AbstractProblem; data=nothing, iters=100, kwargs...)
 
 
     ### POSTERIOR ESTIMATOR ###
-    estimator = log_posterior_mean
+    # `nongp`-specific: NonstationaryGP's posterior variance can occasionally come out
+    # substantially negative far from training data, which BOSS.jl's `_clip_var` correctly
+    # refuses to silently accept — this used to surface as NaN TV-metric entries (MetricCallback
+    # catching the resulting DomainError). `log_posterior_mean_safe` (src/safe_posterior_estimator.jl)
+    # is a drop-in replacement used ONLY by MetricCallback/PlotCB (never by the BO loop itself)
+    # that clamps the offending variance to a small epsilon instead, with a runtime @warn.
+    estimator = log_posterior_mean_safe
+    # estimator = log_posterior_mean
     # estimator = log_approx_posterior
 
 
@@ -123,14 +130,16 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     bosip = load(file)["problem"]
     @assert bosip isa BosipProblem
 
-    # estimator
-    estimator = log_posterior_mean
+    # estimator (see the note in `main()` above — `log_posterior_mean_safe` is nongp-specific,
+    # used only by MetricCallback/PlotCB, never by the BO loop itself)
+    estimator = log_posterior_mean_safe
+    # estimator = log_posterior_mean
     # estimator = log_approx_posterior
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     # assert iters
     data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100 # TODO
+    @assert data_count > 3
     data_max = 3 + iters # TODO
 
     # continue

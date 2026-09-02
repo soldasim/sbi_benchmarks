@@ -12,6 +12,9 @@ include("analytical1d/include.jl")
 
 # Optimization test functions (for proxy variable and acquisition function review experiments)
 include("opt_functions/include.jl")
+include("sharp_problem.jl")
+include("hex_obs_problem.jl")
+include("cross_polytope_obs_problem.jl")
 
 # SBIBM
 ### SIR reimplemented in the "physical" problems section
@@ -31,6 +34,8 @@ include("physical/sir.jl")
 include("physical/sir_log.jl")
 include("physical/sir_proxy.jl")
 include("physical/duffing.jl")
+include("physical/duffing5.jl")
 include("physical/duffing_log.jl")
 include("physical/diffusion.jl")
+include("physical/diffusion5d.jl")
 include("physical/diffusion_log.jl")

@@ -19,13 +19,20 @@ function get_metric(::Type{OptMMDMetric}, problem::AbstractProblem)
     )
 end
 function get_metric(::Type{TVMetric}, problem::AbstractProblem)
-    # TODO
-    xs = rand(x_prior(problem), 20 * 10^x_dim(problem))
-    log_ws = 0. .- logpdf.(Ref(x_prior(problem)), eachcol(xs))
-
-    return TVMetric(;
-        grid = xs,
-        log_ws = log_ws,
-        true_logpost = true_logpost(problem),
-    )
+    if isfile(posterior_grid_filepath(problem))
+        grid_data = load_grid(problem)
+        return TVMetric(;
+            grid = grid_data.xs,
+            log_ws = grid_data.log_ws,
+            true_logvals = grid_data.true_logvals,
+        )
+    else
+        xs = rand(x_prior(problem), 20 * 10^x_dim(problem))
+        log_ws = 0. .- logpdf.(Ref(x_prior(problem)), eachcol(xs))
+        return TVMetric(;
+            grid = xs,
+            log_ws = log_ws,
+            true_logpost = true_logpost(problem),
+        )
+    end
 end

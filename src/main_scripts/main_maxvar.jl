@@ -79,7 +79,7 @@ function main_continue(problem::AbstractProblem, run_name::String, run_idx::Unio
     @warn "using posterior estimator: $(estimator |> nameof |> string)"
 
     data_count = size(bosip.problem.data.X, 2)
-    @assert data_count >= 3 + 100
+    @assert data_count > 3
     data_max = 3 + iters
 
     return main(problem, bosip, estimator; continued=true, run_name, run_idx, data_max, kwargs...)

@@ -23,14 +23,6 @@ Random.seed!(888) # different seed then in main.jl to avoid identical grid point
 
 include("include_code.jl")
 
-_grid_size(problem::AbstractProblem) = 20 * 10^x_dim(problem)
-
-_grid_size(problem::MultidimProblem) = 20_000
-_grid_size(problem::GaussProblem) = 20_000
-_grid_size(problem::MeanGauss) = 20_000
-_grid_size(problem::RosenbrockProblem) = 20_000
-_grid_size(problem::StyblinskiTangProblem) = 20_000
-_grid_size(problem::MichalewiczProblem) = 20_000
 
 function precompute_grid(problem::AbstractProblem)
     @info "Precomputing all grids for $(typeof(problem))"
@@ -103,4 +95,11 @@ function precompute_simulator_grid(problem::AbstractProblem)
     ))
 
     @info "Done!"
+end
+
+# Entry point when run as a script (guard prevents execution when included from another script)
+if abspath(PROGRAM_FILE) == @__FILE__
+    const problem_name = ARGS[1]
+    const problem = reconstruct_problem(problem_name)
+    precompute_grid(problem)
 end

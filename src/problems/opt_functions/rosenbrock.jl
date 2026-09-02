@@ -13,12 +13,13 @@ proxy variable (log transform, clipping, etc.) highly impactful.
 With z_obs = 1 and Gaussian likelihood, the posterior concentrates along the
 banana-shaped level set {f(x) ≈ 1}, yielding a curved, non-Gaussian posterior.
 """
-@kwdef struct RosenbrockProblem <: AbstractProblem
+@kwdef struct RosenbrockProblem <: AbstractOptFunctionProblem
     gradients::Bool = false
     x_dim::Int = 2
+    std_obs::Vector{Float64} = [0.5]
 end
 
-set_gradients(p::RosenbrockProblem, val::Bool) = RosenbrockProblem(val, p.x_dim)
+set_gradients(p::RosenbrockProblem, val::Bool) = RosenbrockProblem(val, p.x_dim, p.std_obs)
 
 get_name(p::RosenbrockProblem) = (p |> typeof |> string) * string(p.x_dim)
 
@@ -28,24 +29,30 @@ module RosenbrockProblemModule
 import ..RosenbrockProblem
 import ..simulator; import ..domain; import ..likelihood; import ..prior_mean
 import ..x_prior; import ..est_amplitude; import ..est_noise_std
-import ..est_grad_noise_std; import ..true_f; import ..reference_samples; import ..y_max
+import ..est_grad_noise_std; import ..true_f; import ..true_params; import ..reference_samples; import ..y_max
 
 using BOSS; using BOSIP; using Distributions
 
-const z_obs    = [1.0]
-const std_obs  = [0.5]
+const x_true   = [0.000000, 0.000000]
+const x_true_5 = [0.0, 0.0, 0.0, 0.0, 0.0]
 
 # --- API ---
 
 simulator(p::RosenbrockProblem) = p.gradients ? _sim_grads(p.x_dim) : _sim(p.x_dim)
 domain(p::RosenbrockProblem)    = Domain(; bounds = (fill(-2.0, p.x_dim), fill(2.0, p.x_dim)))
-likelihood(::RosenbrockProblem) = NormalLikelihood(; z_obs, std_obs)
-prior_mean(::RosenbrockProblem) = z_obs
+_z_obs(p::RosenbrockProblem) = true_f(p)(true_params(p))
+likelihood(p::RosenbrockProblem) = NormalLikelihood(; z_obs=_z_obs(p), std_obs=p.std_obs)
+prior_mean(p::RosenbrockProblem) = _z_obs(p)
 x_prior(p::RosenbrockProblem)   = Product(fill(Uniform(-2.0, 2.0), p.x_dim))
 est_amplitude(::RosenbrockProblem)      = [100.0]
 est_noise_std(::RosenbrockProblem)      = nothing
 est_grad_noise_std(::RosenbrockProblem) = nothing
 true_f(p::RosenbrockProblem)    = _true_f(p.x_dim)
+function true_params(p::RosenbrockProblem)
+    p.x_dim == 2 && return x_true
+    p.x_dim == 5 && return x_true_5
+    error("true_params not defined for $(p.x_dim)D $(typeof(p))")
+end
 
 # --- Simulator ---
 

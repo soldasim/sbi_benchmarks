@@ -23,7 +23,7 @@ groups = ["maxvar", "eiv"]
 @info "Plotting combined grid ..."
 set_theme_fonts!(; base_fontsize=18)
 
-problems_grid = reshape(all_problems, 2, 3)  # [d=2; d=5] × [Rosen, Styb, Mich]
+problems_grid = reshape(all_problems, 3, 2)  # [Rosen; Styb; Mich] × [d=2, d=5]
 nrows, ncols = size(problems_grid)
 ax_width, ax_height = axis_size()
 fig = Figure(; size = (ax_width * ncols, ax_height * nrows))

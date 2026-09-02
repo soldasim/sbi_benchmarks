@@ -74,6 +74,14 @@ function get_grad_noise_std_priors(problem::AbstractProblem; noise=nothing)
     return truncated.(Normal.(0., est_σ); lower=0.)
 end
 
+function get_output_warpings(problem::AbstractProblem)
+    ydim = y_dim(problem)
+    return [ComposedWarping(
+        YeoJohnsonWarping(; λ_prior=Normal(1., 0.5)),
+        SinhArcsinhWarping(; skewness_prior=Normal(0., 0.5), tailweight_prior=LogNormal(0., 0.5)),
+    ) for _ in 1:ydim]
+end
+
 ### MultidimProblem with fixed parameters
 
 # function get_lengthscale_priors(problem::MultidimProblem)
