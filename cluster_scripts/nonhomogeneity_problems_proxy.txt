@@ -1,3 +1,0 @@
-ProxySIRProblem 10
-BealeProxyProblem_cross 4
-GoldsteinPriceProxyProblem_cross 4
